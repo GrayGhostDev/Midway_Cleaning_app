@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mjml>
+  <mj-head>
+    <mj-title>Report Ready - {{reportName}}</mj-title>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body>
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-image width="150px" src="{{logoUrl}}" alt="Company Logo" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="24px" font-weight="600" color="#000000">
+          Your Report is Ready
+        </mj-text>
+        <mj-text font-size="16px" color="#666666" line-height="24px">
+          The {{reportName}} has been generated and is now available for viewing.
+        </mj-text>
+        <mj-text font-size="16px" color="#666666" line-height="24px">
+          Report Details:
+          <br />
+          - Generated: {{generatedDate}}
+          <br />
+          - Type: {{reportType}}
+          <br />
+          - Period: {{reportPeriod}}
+        </mj-text>
+        <mj-button background-color="#000000" color="white" href="{{viewUrl}}">
+          View Report
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f6f6f6" padding="20px">
+      <mj-column>
+        <mj-text font-size="14px" color="#666666" align="center">
+          This is an automated message. Please do not reply.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

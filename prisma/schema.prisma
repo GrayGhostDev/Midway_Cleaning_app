@@ -1,0 +1,296 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  password        String
+  role            String    // ADMIN, MANAGER, EMPLOYEE, CLIENT
+  profile         Profile?
+  tasks           Task[]    @relation("AssignedTasks")
+  shifts          Shift[]
+  certifications  Certification[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  reports         Report[]  @relation("GeneratedReports")
+  reportTemplates ReportTemplate[] @relation("CreatedTemplates")
+  reportSchedules ReportSchedule[] @relation("CreatedSchedules")
+  automations     ReportAutomation[] @relation("CreatedAutomations")
+  exports         ReportExport[] @relation("CreatedExports")
+}
+
+model Profile {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  phone       String?
+  address     String?
+  preferences Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    // PENDING, IN_PROGRESS, COMPLETED
+  priority    String    // LOW, MEDIUM, HIGH, URGENT
+  assigneeId  String
+  assignee    User      @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  locationId  String
+  location    Location  @relation(fields: [locationId], references: [id])
+  dueDate     DateTime
+  checklist   Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Shift {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  locationId  String
+  location    Location  @relation(fields: [locationId], references: [id])
+  startTime   DateTime
+  endTime     DateTime
+  status      String    // SCHEDULED, IN_PROGRESS, COMPLETED
+  type        String    // REGULAR, OVERTIME, ON_CALL
+  duration    Float     // in hours
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Location {
+  id          String    @id @default(cuid())
+  name        String
+  address     String
+  type        String    // OFFICE, MEDICAL, RETAIL, etc.
+  size        Float     // in square feet
+  tasks       Task[]
+  shifts      Shift[]
+  equipment   Equipment[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Equipment {
+  id                String    @id @default(cuid())
+  name              String
+  serialNumber      String    @unique
+  type              String
+  status            String    // AVAILABLE, IN_USE, MAINTENANCE, RETIRED
+  purchaseDate      DateTime
+  warrantyExpiry    DateTime?
+  lastMaintenance   DateTime?
+  nextMaintenance   DateTime?
+  locationId        String
+  location          Location  @relation(fields: [locationId], references: [id])
+  assignedUserId    String?
+  assignedUser      User?     @relation(fields: [assignedUserId], references: [id])
+  maintenanceLogs   MaintenanceLog[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model MaintenanceLog {
+  id            String    @id @default(cuid())
+  equipmentId   String
+  equipment     Equipment @relation(fields: [equipmentId], references: [id])
+  type          String    // ROUTINE, REPAIR, INSPECTION
+  description   String
+  performedBy   String
+  performedAt   DateTime  @default(now())
+  cost          Float
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Certification {
+  id          String    @id @default(cuid())
+  name        String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  issuedDate  DateTime
+  expiryDate  DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model InventoryItem {
+  id            String    @id @default(cuid())
+  name          String
+  category      String
+  quantity      Int
+  minQuantity   Int
+  unit          String
+  status        String    // IN_STOCK, LOW_STOCK, OUT_OF_STOCK
+  locationId    String
+  location      Location  @relation(fields: [locationId], references: [id])
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  transactions  InventoryTransaction[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model InventoryTransaction {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  type        String        // IN, OUT
+  quantity    Int
+  date        DateTime      @default(now())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  cost        Float?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Supplier {
+  id          String          @id @default(cuid())
+  name        String
+  email       String
+  phone       String
+  address     String
+  items       InventoryItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ReportTemplate {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  type          String    // PERFORMANCE, INVENTORY, MAINTENANCE, FINANCIAL
+  format        String    // PDF, EXCEL, CSV
+  parameters    Json?
+  createdById   String
+  createdBy     User      @relation("CreatedTemplates", fields: [createdById], references: [id])
+  schedule      ReportSchedule?
+  reports       Report[]
+  automations   ReportAutomation[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ReportSchedule {
+  id            String    @id @default(cuid())
+  templateId    String    @unique
+  template      ReportTemplate @relation(fields: [templateId], references: [id])
+  frequency     String    // DAILY, WEEKLY, MONTHLY, QUARTERLY
+  startDate     DateTime
+  nextRunDate   DateTime
+  recipients    String[]
+  parameters    Json?
+  status        String    // ACTIVE, PAUSED
+  createdById   String
+  createdBy     User      @relation("CreatedSchedules", fields: [createdById], references: [id])
+  reports       Report[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Report {
+  id                String    @id @default(cuid())
+  templateId        String
+  template          ReportTemplate @relation(fields: [templateId], references: [id])
+  scheduleId        String?
+  schedule          ReportSchedule? @relation(fields: [scheduleId], references: [id])
+  automationId      String?
+  automation        ReportAutomation? @relation("AutomationRuns", fields: [automationId], references: [id])
+  lastRunFor        ReportAutomation? @relation("LastRun")
+  data              Json
+  format            String    // JSON, CSV, PDF, EXCEL
+  status            String    @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  error             String?
+  generatedById     String
+  generatedBy       User      @relation("GeneratedReports", fields: [generatedById], references: [id])
+  notifiedAt        DateTime?
+  notifiedRecipients String[]
+  exports           ReportExport[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model ReportAutomation {
+  id            String    @id @default(cuid())
+  templateId    String
+  template      ReportTemplate @relation(fields: [templateId], references: [id])
+  schedule      Json      // Frequency, time, recipients, etc.
+  status        String    // ACTIVE, PAUSED, COMPLETED
+  nextRunAt     DateTime
+  lastRunAt     DateTime?
+  createdById   String
+  createdBy     User      @relation("CreatedAutomations", fields: [createdById], references: [id])
+  lastRun       Report?   @relation("LastRun")
+  runs          Report[]  @relation("AutomationRuns")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ReportExport {
+  id            String    @id @default(cuid())
+  reportId      String
+  report        Report    @relation(fields: [reportId], references: [id])
+  format        String    // PDF, EXCEL, CSV
+  url           String
+  createdById   String
+  createdBy     User      @relation("CreatedExports", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+}
+
+model ServiceBooking {
+  id            String    @id @default(cuid())
+  clientId      String
+  client        User      @relation(fields: [clientId], references: [id])
+  serviceId     String
+  service       Service   @relation(fields: [serviceId], references: [id])
+  locationId    String
+  location      Location  @relation(fields: [locationId], references: [id])
+  scheduledDate DateTime
+  scheduledTime String
+  status        String    // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  notes         String?
+  feedback      Feedback?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  category    String
+  duration    String
+  rate        Float
+  rateUnit    String    // HOUR, VISIT, SQFT
+  status      String    // ACTIVE, UNDER_REVIEW, DISCONTINUED
+  bookings    ServiceBooking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Feedback {
+  id          String    @id @default(cuid())
+  bookingId   String    @unique
+  booking     ServiceBooking @relation(fields: [bookingId], references: [id])
+  clientId    String
+  client      User      @relation(fields: [clientId], references: [id])
+  rating      Int
+  comment     String
+  category    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
