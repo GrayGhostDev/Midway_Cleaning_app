@@ -1,0 +1,65 @@
+name: Security Score
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Run every Monday at midnight
+  workflow_dispatch:
+
+jobs:
+  security-score:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Mozilla Observatory Scan
+        id: observatory
+        continue-on-error: true
+        run: |
+          score=$(curl -X POST "https://http-observatory.security.mozilla.org/api/v1/analyze?host=${{ github.repository }}")
+          echo "OBSERVATORY_SCORE=$score" >> $GITHUB_ENV
+
+      - name: Run Security Scorecard
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_results: true
+
+      - name: Upload Scorecard results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+          category: scorecard
+
+      - name: Generate Security Report
+        run: |
+          echo "# Security Score Report" > security-report.md
+          echo "## Generated on $(date)" >> security-report.md
+          echo "### Scorecard Results" >> security-report.md
+          cat results.sarif | jq -r '.runs[0].results[] | "- " + .message.text' >> security-report.md
+          echo "### Observatory Score" >> security-report.md
+          echo "Score: ${{ env.OBSERVATORY_SCORE }}" >> security-report.md
+
+      - name: Create Issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('security-report.md', 'utf8');
+            const today = new Date().toISOString().split('T')[0];
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Security Score Report - ${today}`,
+              body: report,
+              labels: ['security', 'automated-report']
+            });
