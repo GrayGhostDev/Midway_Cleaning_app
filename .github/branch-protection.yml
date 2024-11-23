@@ -1,0 +1,26 @@
+protection:
+  # Require pull request reviews before merging
+  required_pull_request_reviews:
+    required_approving_review_count: 1
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+    
+  # Require status checks to pass before merging
+  required_status_checks:
+    strict: true
+    contexts:
+      - "build (16.x)"
+      - "build (18.x)"
+      - "lint"
+      
+  # Enforce all commits to be signed
+  required_signatures: true
+  
+  # Include administrators
+  enforce_admins: true
+  
+  # Restrict who can push to matching branches
+  restrictions:
+    users: []
+    teams: []
+    apps: []
