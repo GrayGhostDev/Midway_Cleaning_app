@@ -73,7 +73,7 @@
     "cmdk": "^1.0.4",
     "concurrently": "^8.2.1",
     "csv-stringify": "^6.4.5",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.5.1",
     "exceljs": "^4.4.0",
     "framer-motion": "^11.0.8",
