@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 import { ratelimit } from "@/lib/rate-limit";
 import { AppError, handleError } from "@/lib/error-handler";
 import { z } from "zod";
@@ -9,9 +9,9 @@ import { z } from "zod";
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
-  locationId: z.string().min(1, "Location is required"),
-  assigneeId: z.string().min(1, "Assignee is required"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  cleanerId: z.string().min(1, "Cleaner is required"),
+  bookingId: z.string().optional(),
   dueDate: z.string().transform((str) => new Date(str)),
 });
 
@@ -24,29 +24,31 @@ export async function GET() {
       throw new AppError("Too many requests", 429, "RATE_LIMIT_EXCEEDED");
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = auth();
+    if (!userId) {
       throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const tasks = await prisma.task.findMany({
       include: {
-        assignee: {
+        cleaner: {
           select: {
             id: true,
             name: true,
             email: true,
           },
         },
-        location: true,
-        checklist: true,
+        booking: true,
       },
     });
 
     return NextResponse.json(tasks);
   } catch (error) {
     console.error("[TASKS_GET]", error);
-    return handleError(error);
+    if (error instanceof AppError) {
+      return handleError(error);
+    }
+    return handleError(new AppError("Failed to fetch tasks", 500, "FETCH_TASKS_ERROR"));
   }
 }
 
@@ -59,8 +61,15 @@ export async function POST(req: Request) {
       throw new AppError("Too many requests", 429, "RATE_LIMIT_EXCEEDED");
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = auth();
+    if (!userId) {
+      throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+    }
+
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
@@ -75,14 +84,14 @@ export async function POST(req: Request) {
         status: "PENDING",
       },
       include: {
-        assignee: {
+        cleaner: {
           select: {
             id: true,
             name: true,
             email: true,
           },
         },
-        location: true,
+        booking: true,
       },
     });
 

@@ -42,7 +42,8 @@ export function useApiMutation<T>(
   ): Promise<T> => {
     try {
       return await fn();
-    } catch (err) {
+    } catch (error) {
+      const err = error as ApiError;
       if (retriesLeft === 0) throw err;
       
       // Don't retry on certain error codes

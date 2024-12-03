@@ -20,7 +20,7 @@ export function useClientMessages(params?: {
       const data = await ClientService.getMessages(params);
       setMessages(data);
     } catch (error) {
-      setError(error);
+      setError(error instanceof Error ? error : new Error('Failed to load messages'));
       toast({
         title: "Error",
         description: "Failed to load messages. Please try again.",

@@ -13,9 +13,16 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useState } from "react";
 import { Repeat, Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
+import { SelectMultipleEventHandler } from "react-day-picker";
 
 export function RecurringBooking() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+
+  const handleSelect: SelectMultipleEventHandler = (days) => {
+    if (days) {
+      setSelectedDates(days);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,7 +68,7 @@ export function RecurringBooking() {
             <Calendar
               mode="multiple"
               selected={selectedDates}
-              onSelect={setSelectedDates}
+              onSelect={handleSelect}
               className="rounded-md border"
             />
           </div>

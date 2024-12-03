@@ -1,24 +1,40 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
+import { ServiceStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "CLIENT") {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || userRole !== "CLIENT") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const feedback = await prisma.feedback.findMany({
       where: {
-        clientId: session.user.id,
+        userId: userId,
       },
       include: {
         booking: {
           include: {
             service: true,
+            cleaner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
           },
         },
       },
@@ -36,24 +52,31 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "CLIENT") {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || userRole !== "CLIENT") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json();
-    const { bookingId, rating, comment, category } = body;
+    const { bookingId, rating, comment } = body;
 
-    if (!bookingId || !rating || !comment || !category) {
+    if (!bookingId || !rating || !comment) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    const booking = await prisma.serviceBooking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: {
         id: bookingId,
-        clientId: session.user.id,
-        status: "COMPLETED",
+        userId: userId,
+        status: ServiceStatus.COMPLETED,
       },
     });
 
@@ -74,15 +97,22 @@ export async function POST(req: Request) {
     const feedback = await prisma.feedback.create({
       data: {
         bookingId,
-        clientId: session.user.id,
+        userId,
         rating,
         comment,
-        category,
       },
       include: {
         booking: {
           include: {
             service: true,
+            cleaner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
           },
         },
       },

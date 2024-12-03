@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,7 @@ export function EmployeeList({ searchQuery }: EmployeeListProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  async function loadEmployees() {
+  const loadEmployees = useCallback(async () => {
     try {
       const data = await EmployeeService.getAll();
       setEmployees(data);
@@ -41,7 +37,11 @@ export function EmployeeList({ searchQuery }: EmployeeListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
 
   const filteredEmployees = employees.filter((employee) =>
     employee.name.toLowerCase().includes(searchQuery.toLowerCase())

@@ -2,12 +2,15 @@ import { useState, useCallback } from 'react';
 import { serviceFactory } from '@/lib/services/service-factory';
 import { useToast } from '@/components/ui/use-toast';
 
-export function useService<T>(serviceName: string) {
+type ServiceName = 'Service' | 'Booking';
+
+export function useService<T>(serviceName: ServiceName) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  const service = serviceFactory[`get${serviceName}Service`]();
+  const getServiceMethod = `get${serviceName}Service` as const;
+  const service = serviceFactory[getServiceMethod]() as T;
 
   const execute = useCallback(async <R>(
     method: keyof T,
@@ -17,13 +20,14 @@ export function useService<T>(serviceName: string) {
     setError(null);
 
     try {
-      const result = await service[method](...args);
+      const result = await (service[method] as Function)(...args);
       return result;
     } catch (err) {
-      setError(err);
+      const error = err instanceof Error ? err : new Error('An error occurred');
+      setError(error);
       toast({
         title: "Error",
-        description: err.message,
+        description: error.message,
         variant: "destructive",
       });
       return null;

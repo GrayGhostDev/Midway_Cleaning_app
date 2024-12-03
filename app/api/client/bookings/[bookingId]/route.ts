@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { ServiceStatus } from "@prisma/client";
 
 export async function GET(
   req: Request,
   { params }: { params: { bookingId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "CLIENT") {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -18,15 +18,14 @@ export async function GET(
       return new NextResponse("Booking ID required", { status: 400 });
     }
 
-    const booking = await prisma.serviceBooking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: {
         id: params.bookingId,
-        clientId: session.user.id,
+        userId: userId,
       },
       include: {
         service: true,
-        location: true,
-        assignedStaff: {
+        cleaner: {
           select: {
             id: true,
             name: true,
@@ -53,23 +52,23 @@ export async function PATCH(
   { params }: { params: { bookingId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "CLIENT") {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const body = await req.json();
+    const { date, notes } = body;
 
     if (!params.bookingId) {
       return new NextResponse("Booking ID required", { status: 400 });
     }
 
-    const body = await req.json();
-    const { scheduledDate, scheduledTime, notes } = body;
-
-    const booking = await prisma.serviceBooking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: {
         id: params.bookingId,
-        clientId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -77,22 +76,27 @@ export async function PATCH(
       return new NextResponse("Booking not found", { status: 404 });
     }
 
-    if (booking.status !== "PENDING") {
+    if (booking.status !== ServiceStatus.PENDING) {
       return new NextResponse("Cannot modify confirmed booking", { status: 400 });
     }
 
-    const updatedBooking = await prisma.serviceBooking.update({
+    const updatedBooking = await prisma.booking.update({
       where: {
         id: params.bookingId,
       },
       data: {
-        scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
-        scheduledTime,
+        date: date ? new Date(date) : undefined,
         notes,
       },
       include: {
         service: true,
-        location: true,
+        cleaner: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -108,9 +112,9 @@ export async function DELETE(
   { params }: { params: { bookingId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "CLIENT") {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -118,10 +122,10 @@ export async function DELETE(
       return new NextResponse("Booking ID required", { status: 400 });
     }
 
-    const booking = await prisma.serviceBooking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: {
         id: params.bookingId,
-        clientId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -129,13 +133,16 @@ export async function DELETE(
       return new NextResponse("Booking not found", { status: 404 });
     }
 
-    if (booking.status !== "PENDING") {
+    if (booking.status !== ServiceStatus.PENDING) {
       return new NextResponse("Cannot cancel confirmed booking", { status: 400 });
     }
 
-    await prisma.serviceBooking.delete({
+    await prisma.booking.update({
       where: {
         id: params.bookingId,
+      },
+      data: {
+        status: ServiceStatus.CANCELLED,
       },
     });
 

@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -24,12 +31,6 @@ export async function POST(req: Request) {
     switch (type) {
       case "performance":
         reportData = await generatePerformanceReport(startDate, endDate);
-        break;
-      case "inventory":
-        reportData = await generateInventoryReport(startDate, endDate);
-        break;
-      case "maintenance":
-        reportData = await generateMaintenanceReport(startDate, endDate);
         break;
       case "financial":
         reportData = await generateFinancialReport(startDate, endDate);
@@ -66,7 +67,7 @@ async function generatePerformanceReport(startDate: string, endDate: string) {
       },
     },
     include: {
-      assignee: {
+      cleaner: {
         select: {
           id: true,
           name: true,
@@ -95,94 +96,77 @@ async function generatePerformanceReport(startDate: string, endDate: string) {
       averageRating: feedback.reduce((acc, f) => acc + f.rating, 0) / feedback.length,
       totalFeedback: feedback.length,
     },
-    employeePerformance: calculateEmployeePerformance(tasks),
-  };
-}
-
-async function generateInventoryReport(startDate: string, endDate: string) {
-  const transactions = await prisma.inventoryTransaction.findMany({
-    where: {
-      date: {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
-      },
-    },
-    include: {
-      item: true,
-    },
-  });
-
-  const currentInventory = await prisma.inventoryItem.findMany({
-    include: {
-      location: true,
-    },
-  });
-
-  return {
-    transactions: {
-      total: transactions.length,
-      inflow: transactions.filter(t => t.type === "IN").length,
-      outflow: transactions.filter(t => t.type === "OUT").length,
-    },
-    currentStock: {
-      total: currentInventory.length,
-      lowStock: currentInventory.filter(i => i.status === "LOW_STOCK").length,
-      outOfStock: currentInventory.filter(i => i.status === "OUT_OF_STOCK").length,
-    },
-    locationBreakdown: calculateLocationBreakdown(currentInventory),
-  };
-}
-
-async function generateMaintenanceReport(startDate: string, endDate: string) {
-  const maintenanceLogs = await prisma.maintenanceLog.findMany({
-    where: {
-      performedAt: {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
-      },
-    },
-    include: {
-      equipment: true,
-    },
-  });
-
-  return {
-    totalMaintenance: maintenanceLogs.length,
-    byType: {
-      routine: maintenanceLogs.filter(l => l.type === "ROUTINE").length,
-      repair: maintenanceLogs.filter(l => l.type === "REPAIR").length,
-      inspection: maintenanceLogs.filter(l => l.type === "INSPECTION").length,
-    },
-    totalCost: maintenanceLogs.reduce((acc, log) => acc + log.cost, 0),
-    equipmentBreakdown: calculateEquipmentBreakdown(maintenanceLogs),
+    cleanerPerformance: calculateCleanerPerformance(tasks),
   };
 }
 
 async function generateFinancialReport(startDate: string, endDate: string) {
-  // Implement financial report generation
-  // This would typically include revenue, expenses, profitability metrics, etc.
+  const payments = await prisma.payment.findMany({
+    where: {
+      createdAt: {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      },
+    },
+    include: {
+      booking: {
+        include: {
+          service: true,
+        },
+      },
+    },
+  });
+
+  const totalRevenue = payments
+    .filter(p => p.status === "PAID")
+    .reduce((acc, p) => acc + Number(p.amount), 0);
+
+  const revenueByService = payments
+    .filter(p => p.status === "PAID")
+    .reduce((acc: Record<string, number>, p) => {
+      const serviceName = p.booking?.service?.name || "Unknown";
+      acc[serviceName] = (acc[serviceName] || 0) + Number(p.amount);
+      return acc;
+    }, {});
+
+  const monthlyRevenue = payments
+    .filter(p => p.status === "PAID")
+    .reduce((acc: Record<string, number>, p) => {
+      const month = format(new Date(p.createdAt), "MMM yyyy");
+      acc[month] = (acc[month] || 0) + Number(p.amount);
+      return acc;
+    }, {});
+
   return {
-    // Financial metrics would go here
+    totalRevenue,
+    revenueByService,
+    monthlyRevenue,
+    paymentMetrics: {
+      total: payments.length,
+      paid: payments.filter(p => p.status === "PAID").length,
+      pending: payments.filter(p => p.status === "PENDING").length,
+      failed: payments.filter(p => p.status === "FAILED").length,
+    },
   };
 }
 
-function calculateEmployeePerformance(tasks: any[]) {
+function calculateCleanerPerformance(tasks: any[]) {
   const performance: Record<string, any> = {};
   
   tasks.forEach(task => {
-    if (!task.assignee) return;
+    if (!task.cleaner) return;
     
-    if (!performance[task.assignee.id]) {
-      performance[task.assignee.id] = {
-        name: task.assignee.name,
+    if (!performance[task.cleaner.id]) {
+      performance[task.cleaner.id] = {
+        name: task.cleaner.name,
         total: 0,
         completed: 0,
       };
     }
     
-    performance[task.assignee.id].total++;
+    performance[task.cleaner.id].total++;
     if (task.status === "COMPLETED") {
-      performance[task.assignee.id].completed++;
+      performance[task.cleaner.id].completed++;
     }
   });
 
@@ -192,50 +176,7 @@ function calculateEmployeePerformance(tasks: any[]) {
   }));
 }
 
-function calculateLocationBreakdown(inventory: any[]) {
-  const breakdown: Record<string, any> = {};
-  
-  inventory.forEach(item => {
-    if (!item.location) return;
-    
-    if (!breakdown[item.location.id]) {
-      breakdown[item.location.id] = {
-        name: item.location.name,
-        itemCount: 0,
-        totalValue: 0,
-      };
-    }
-    
-    breakdown[item.location.id].itemCount++;
-    // Add value calculation if items have value/cost properties
-  });
-
-  return Object.values(breakdown);
-}
-
-function calculateEquipmentBreakdown(logs: any[]) {
-  const breakdown: Record<string, any> = {};
-  
-  logs.forEach(log => {
-    if (!log.equipment) return;
-    
-    if (!breakdown[log.equipment.id]) {
-      breakdown[log.equipment.id] = {
-        name: log.equipment.name,
-        maintenanceCount: 0,
-        totalCost: 0,
-      };
-    }
-    
-    breakdown[log.equipment.id].maintenanceCount++;
-    breakdown[log.equipment.id].totalCost += log.cost;
-  });
-
-  return Object.values(breakdown);
-}
-
 function convertToCSV(data: any): string {
   // Implement CSV conversion logic
-  // This would convert the JSON data to CSV format
-  return ""; // Placeholder
+  return "";
 }

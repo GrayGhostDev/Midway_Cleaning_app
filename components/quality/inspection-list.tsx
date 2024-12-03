@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +32,7 @@ export function InspectionList({ searchQuery }: InspectionListProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadInspections();
-  }, []);
-
-  async function loadInspections() {
+  const loadInspections = useCallback(async () => {
     try {
       const data = await QualityService.getInspections();
       setInspections(data);
@@ -49,7 +45,11 @@ export function InspectionList({ searchQuery }: InspectionListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadInspections();
+  }, [loadInspections]);
 
   const filteredInspections = inspections.filter((inspection) =>
     inspection.location.toLowerCase().includes(searchQuery.toLowerCase())

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { QualityService } from "@/lib/services/quality.service";
@@ -16,11 +16,7 @@ export function QualityMetrics() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadMetrics();
-  }, []);
-
-  async function loadMetrics() {
+  const loadMetrics = useCallback(async () => {
     try {
       const data = await QualityService.getMetrics();
       setMetrics(data);
@@ -33,7 +29,11 @@ export function QualityMetrics() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   LineChart,
@@ -12,19 +12,17 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { AnalyticsService, PerformanceData } from "@/lib/services/analytics.service";
+import { AnalyticsService, PerformanceData } from "../../lib/services/analytics.service";
 import { useToast } from "@/components/ui/use-toast";
 
-export function PerformanceMetrics() {
+interface PerformanceMetricsProps {}
+
+export function PerformanceMetrics({}: PerformanceMetricsProps) {
   const [data, setData] = useState<PerformanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadPerformanceData();
-  }, []);
-
-  async function loadPerformanceData() {
+  const loadPerformanceData = useCallback(async () => {
     try {
       const performanceData = await AnalyticsService.getPerformanceData();
       setData(performanceData);
@@ -37,7 +35,11 @@ export function PerformanceMetrics() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadPerformanceData();
+  }, [loadPerformanceData]);
 
   if (loading) {
     return (

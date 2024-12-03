@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
+import { ServiceStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "CLIENT") {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || userRole !== "CLIENT") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -17,35 +25,38 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate");
 
     const where: any = {
-      clientId: session.user.id,
+      userId: userId,
     };
 
     if (status) {
-      where.status = status;
+      where.status = status as ServiceStatus;
     }
 
     if (startDate && endDate) {
-      where.scheduledDate = {
+      where.date = {
         gte: new Date(startDate),
         lte: new Date(endDate),
       };
     }
 
-    const bookings = await prisma.serviceBooking.findMany({
+    const bookings = await prisma.booking.findMany({
       where,
       include: {
         service: true,
-        location: true,
-        assignedStaff: {
+        cleaner: {
           select: {
             id: true,
             name: true,
-            role: true,
+            email: true,
+            phoneNumber: true,
           },
         },
+        payment: true,
+        review: true,
+        feedback: true,
       },
       orderBy: {
-        scheduledDate: "desc",
+        date: "desc",
       },
     });
 
@@ -58,32 +69,45 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "CLIENT") {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || userRole !== "CLIENT") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json();
-    const { serviceId, locationId, scheduledDate, scheduledTime, notes } = body;
+    const { serviceId, date, notes } = body;
 
-    if (!serviceId || !locationId || !scheduledDate || !scheduledTime) {
+    if (!serviceId || !date) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    const booking = await prisma.serviceBooking.create({
+    const booking = await prisma.booking.create({
       data: {
-        clientId: session.user.id,
+        userId,
         serviceId,
-        locationId,
-        scheduledDate: new Date(scheduledDate),
-        scheduledTime,
+        date: new Date(date),
         notes,
-        status: "PENDING",
+        status: ServiceStatus.PENDING,
       },
       include: {
         service: true,
-        location: true,
+        cleaner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
+        payment: true,
       },
     });
 

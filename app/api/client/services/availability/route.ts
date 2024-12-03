@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
+import { ServiceStatus, UserRole } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "CLIENT") {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || userRole !== "CLIENT") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -20,24 +28,21 @@ export async function GET(req: Request) {
     }
 
     // Get all bookings for the specified date
-    const bookings = await prisma.serviceBooking.findMany({
+    const bookings = await prisma.booking.findMany({
       where: {
         serviceId,
-        scheduledDate: new Date(date),
+        date: new Date(date),
         status: {
-          in: ["CONFIRMED", "IN_PROGRESS"],
+          in: [ServiceStatus.PENDING, ServiceStatus.IN_PROGRESS],
         },
-      },
-      select: {
-        scheduledTime: true,
       },
     });
 
-    // Get all available staff for the service
-    const availableStaff = await prisma.user.count({
+    // Get all available cleaners
+    const availableCleaners = await prisma.user.count({
       where: {
-        role: "EMPLOYEE",
-        // Add additional criteria for staff availability
+        role: UserRole.CLEANER,
+        isActive: true,
       },
     });
 
@@ -45,12 +50,12 @@ export async function GET(req: Request) {
     const timeSlots = [];
     for (let hour = 9; hour <= 17; hour++) {
       const time = `${hour.toString().padStart(2, "0")}:00`;
-      const bookedCount = bookings.filter(b => b.scheduledTime === time).length;
+      const bookedCount = bookings.length;
       
       timeSlots.push({
         time,
-        available: bookedCount < availableStaff,
-        reason: bookedCount >= availableStaff ? "Fully booked" : null,
+        available: bookedCount < availableCleaners,
+        reason: bookedCount >= availableCleaners ? "No cleaners available" : null,
       });
     }
 

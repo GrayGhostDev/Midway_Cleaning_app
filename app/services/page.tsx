@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CleaningBucket, Plus, Filter } from "lucide-react";
+import { Briefcase, Plus, Filter } from "lucide-react";
 import { ServiceList } from "@/components/services/service-list";
 import { AddServiceDialog } from "@/components/services/add-service-dialog";
 import { ServiceMetrics } from "@/components/services/service-metrics";
@@ -20,7 +20,7 @@ export default function ServicesPage() {
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Services</h1>
           <p className="text-muted-foreground">
-            <CleaningBucket className="mr-2 inline-block h-4 w-4" />
+            <Briefcase className="mr-2 inline-block h-4 w-4" />
             Manage cleaning services and packages
           </p>
         </div>
@@ -53,3 +53,4 @@ export default function ServicesPage() {
       <AddServiceDialog open={open} onOpenChange={setOpen} />
     </div>
   );
+}

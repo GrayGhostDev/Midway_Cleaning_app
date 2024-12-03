@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Tool, AlertTriangle } from "lucide-react";
+import { Calendar, Wrench, AlertTriangle } from "lucide-react";
 import { format, addDays } from "date-fns";
 
 const maintenanceSchedule = [
@@ -82,7 +82,7 @@ export function MaintenanceSchedule() {
               </div>
             </div>
             <Button variant="outline" size="sm">
-              <Tool className="mr-2 h-4 w-4" />
+              <Wrench className="mr-2 h-4 w-4" />
               Start Maintenance
             </Button>
           </div>
@@ -118,121 +118,5 @@ export function MaintenanceSchedule() {
         </Card>
       ))}
     </div>
-  );</content></file>
-
-<boltAction type="file" filePath="components/equipment/maintenance-history.tsx">"use client";
-
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Calendar, Tool, FileText, DollarSign } from "lucide-react";
-import { format } from "date-fns";
-
-const maintenanceHistory = [
-  {
-    id: 1,
-    equipmentName: "Industrial Vacuum #1",
-    date: "2024-03-10",
-    type: "Routine",
-    technician: {
-      name: "John Smith",
-      image: "https://i.pravatar.cc/150?u=john"
-    },
-    actions: [
-      "Replaced HEPA filter",
-      "Cleaned dust compartment",
-      "Checked electrical connections"
-    ],
-    cost: 150,
-    notes: "Equipment in good condition, next maintenance scheduled in 3 months"
-  },
-  {
-    id: 2,
-    equipmentName: "Floor Buffer #3",
-    date: "2024-03-08",
-    type: "Repair",
-    technician: {
-      name: "Sarah Johnson",
-      image: "https://i.pravatar.cc/150?u=sarah"
-    },
-    actions: [
-      "Replaced motor bearings",
-      "Installed new power switch",
-      "Calibrated speed control"
-    ],
-    cost: 320,
-    notes: "Major repair completed, equipment now functioning normally"
-  }
-];
-
-const typeColors = {
-  Routine: "bg-green-100 text-green-800",
-  Repair: "bg-purple-100 text-purple-800",
-  Inspection: "bg-blue-100 text-blue-800"
-};
-
-export function MaintenanceHistory() {
-  return (
-    <div className="space-y-4">
-      {maintenanceHistory.map((record) => (
-        <Card key={record.id} className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <h3 className="font-semibold">{record.equipmentName}</h3>
-              <div className="flex items-center space-x-2">
-                <Badge
-                  variant="outline"
-                  className={typeColors[record.type as keyof typeof typeColors]}
-                >
-                  {record.type}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  <Calendar className="mr-1 inline-block h-4 w-4" />
-                  {format(new Date(record.date), "MMM d, yyyy")}
-                </span>
-              </div>
-            </div>
-            <Button variant="outline" size="sm">
-              <FileText className="mr-2 h-4 w-4" />
-              View Report
-            </Button>
-          </div>
-
-          <div className="mt-4 flex items-center space-x-4">
-            <Avatar>
-              <AvatarImage src={record.technician.image} alt={record.technician.name} />
-              <AvatarFallback>{record.technician.name[0]}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">{record.technician.name}</p>
-              <p className="text-sm text-muted-foreground">Maintenance Technician</p>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            <h4 className="text-sm font-medium">Actions Performed:</h4>
-            <ul className="space-y-1">
-              {record.actions.map((action, index) => (
-                <li key={index} className="flex items-center text-sm">
-                  <Tool className="mr-2 h-4 w-4 text-muted-foreground" />
-                  {action}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t pt-4">
-            <div className="flex items-center">
-              <DollarSign className="mr-1 h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Cost: ${record.cost}</span>
-            </div>
-            <p className="text-sm text-muted-foreground">{record.notes}</p>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );</content></file>
-
-<boltAction type="start">
-<command>npm run dev</command>
+  );
+}

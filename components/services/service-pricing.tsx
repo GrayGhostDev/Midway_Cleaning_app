@@ -82,12 +82,16 @@ export function ServicePricing({ pricing, onUpdate }: ServicePricingProps) {
           <div className="flex items-center justify-between">
             <Label>Enable Discounts</Label>
             <Switch
-              checked={pricing.discounts?.enabled}
+              checked={pricing.discounts?.enabled ?? false}
               onCheckedChange={(checked) =>
                 onUpdate({
                   ...pricing,
                   discounts: checked
-                    ? { enabled: true, value: 0, type: 'percentage' }
+                    ? {
+                        enabled: true,
+                        value: 0,
+                        type: 'percentage',
+                      }
                     : undefined,
                 })
               }
@@ -101,15 +105,18 @@ export function ServicePricing({ pricing, onUpdate }: ServicePricingProps) {
                 <Input
                   type="number"
                   value={pricing.discounts.value}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...pricing,
-                      discounts: {
-                        ...pricing.discounts,
-                        value: parseFloat(e.target.value),
-                      },
-                    })
-                  }
+                  onChange={(e) => {
+                    if (pricing.discounts) {
+                      onUpdate({
+                        ...pricing,
+                        discounts: {
+                          enabled: true,
+                          value: parseFloat(e.target.value),
+                          type: pricing.discounts.type,
+                        },
+                      });
+                    }
+                  }}
                 />
               </div>
 
@@ -117,15 +124,18 @@ export function ServicePricing({ pricing, onUpdate }: ServicePricingProps) {
                 <Label>Discount Type</Label>
                 <Select
                   value={pricing.discounts.type}
-                  onValueChange={(value: 'percentage' | 'fixed') =>
-                    onUpdate({
-                      ...pricing,
-                      discounts: {
-                        ...pricing.discounts,
-                        type: value,
-                      },
-                    })
-                  }
+                  onValueChange={(value: 'percentage' | 'fixed') => {
+                    if (pricing.discounts) {
+                      onUpdate({
+                        ...pricing,
+                        discounts: {
+                          enabled: true,
+                          value: pricing.discounts.value,
+                          type: value,
+                        },
+                      });
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />

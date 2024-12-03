@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 
 export async function GET(
   req: Request,
   { params }: { params: { reportId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -23,7 +30,7 @@ export async function GET(
         id: params.reportId,
       },
       include: {
-        generatedBy: {
+        user: {
           select: {
             id: true,
             name: true,
@@ -49,9 +56,16 @@ export async function DELETE(
   { params }: { params: { reportId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -59,13 +73,13 @@ export async function DELETE(
       return new NextResponse("Report ID required", { status: 400 });
     }
 
-    const report = await prisma.report.delete({
+    await prisma.report.delete({
       where: {
         id: params.reportId,
       },
     });
 
-    return NextResponse.json(report);
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[REPORT_DELETE]", error);
     return new NextResponse("Internal error", { status: 500 });

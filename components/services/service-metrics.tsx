@@ -2,13 +2,13 @@
 
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CleaningBucket, TrendingUp, DollarSign, Star } from "lucide-react";
+import { Briefcase, TrendingUp, DollarSign, Star } from "lucide-react";
 
 const metrics = [
   {
     name: "Active Services",
     value: 12,
-    icon: CleaningBucket,
+    icon: Briefcase,
     description: "Currently offered",
     trend: "+2",
   },

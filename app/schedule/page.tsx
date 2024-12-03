@@ -7,7 +7,7 @@ import { ShiftList } from "@/components/schedule/shift-list";
 import { AddShiftDialog } from "@/components/schedule/add-shift-dialog";
 import { CalendarDays, Plus } from "lucide-react";
 import { format } from "date-fns";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeeklySchedule } from "@/components/schedule/weekly-schedule";
 import { StaffAvailability } from "@/components/schedule/staff-availability";
@@ -24,6 +24,10 @@ export default function SchedulePage() {
           <p className="text-muted-foreground">
             <CalendarDays className="mr-2 inline-block h-4 w-4" />
             {format(selectedDate, "MMMM d, yyyy")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <CalendarDays className="mr-2 inline-block h-4 w-4" />
+            Here&apos;s what&apos;s on the schedule for today and upcoming appointments
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -49,22 +53,26 @@ export default function SchedulePage() {
                 onSelect={(date) => date && setSelectedDate(date)}
                 className="rounded-md border"
               />
-              <Card className="p-4">
-                <h3 className="font-semibold mb-2">Today's Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Shifts:</span>
-                    <span>8</span>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Today&apos;s Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Shifts:</span>
+                      <span>8</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Staff on Duty:</span>
+                      <span>12</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Locations Covered:</span>
+                      <span>5</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Staff on Duty:</span>
-                    <span>12</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Locations Covered:</span>
-                    <span>5</span>
-                  </div>
-                </div>
+                </CardContent>
               </Card>
             </div>
           </div>

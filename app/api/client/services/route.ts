@@ -1,23 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "CLIENT") {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category");
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
 
-    const where = category ? { category } : {};
+    if (!userRole || userRole !== "CLIENT") {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     const services = await prisma.service.findMany({
-      where,
+      where: {
+        isActive: true,
+      },
       orderBy: {
         name: "asc",
       },

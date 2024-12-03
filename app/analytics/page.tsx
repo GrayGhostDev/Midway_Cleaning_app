@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformanceMetrics } from "@/components/analytics/performance-metrics";
+import { RevenuePerformance } from "@/components/analytics/performance-metrics";
 import { CostAnalysis } from "@/components/analytics/cost-analysis";
+import { CostBreakdown } from "@/components/analytics/cost-analysis";
 import { CustomerSatisfaction } from "@/components/analytics/customer-satisfaction";
+import { SatisfactionMetrics } from "@/components/analytics/customer-satisfaction";
 import { ResourceUtilization } from "@/components/analytics/resource-utilization";
+import { ResourceMetrics } from "@/components/analytics/resource-utilization";
 import { BarChart3, DollarSign, Heart, Box } from "lucide-react";
-import { AnalyticsService, DashboardMetrics } from "@/lib/services/analytics.service";
+import { AnalyticsService, type DashboardMetrics } from "@/lib/services/analytics.service";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function AnalyticsPage() {
@@ -16,11 +20,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadDashboardMetrics();
-  }, []);
-
-  async function loadDashboardMetrics() {
+  const loadDashboardMetrics = useCallback(async () => {
     try {
       const data = await AnalyticsService.getDashboardMetrics();
       setMetrics(data);
@@ -28,12 +28,15 @@ export default function AnalyticsPage() {
       toast({
         title: "Error",
         description: "Failed to load dashboard metrics. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }
+  }, [setMetrics, toast]);
+
+  useEffect(() => {
+    loadDashboardMetrics();
+  }, [loadDashboardMetrics]);
 
   if (loading) {
     return (
@@ -106,19 +109,47 @@ export default function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="performance">
-          <PerformanceMetrics />
+          <div className="grid gap-4">
+            <PerformanceMetrics />
+            <RevenuePerformance revenue={{
+              total: 0,
+              trend: 0,
+              data: []
+            }} />
+          </div>
         </TabsContent>
 
         <TabsContent value="costs">
-          <CostAnalysis />
+          <div className="grid gap-4">
+            <CostAnalysis />
+            <CostBreakdown costs={{
+              total: 0,
+              trend: 0,
+              data: []
+            }} />
+          </div>
         </TabsContent>
 
         <TabsContent value="satisfaction">
-          <CustomerSatisfaction />
+          <div className="grid gap-4">
+            <CustomerSatisfaction />
+            <SatisfactionMetrics satisfaction={{
+              average: 0,
+              trend: 0,
+              data: []
+            }} />
+          </div>
         </TabsContent>
 
         <TabsContent value="resources">
-          <ResourceUtilization />
+          <div className="grid gap-4">
+            <ResourceUtilization />
+            <ResourceMetrics utilization={{
+              rate: 0,
+              trend: 0,
+              data: []
+            }} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

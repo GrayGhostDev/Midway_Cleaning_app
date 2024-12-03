@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 
 export async function GET(
   req: Request,
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -23,15 +23,14 @@ export async function GET(
         id: params.taskId,
       },
       include: {
-        assignee: {
+        cleaner: {
           select: {
             id: true,
             name: true,
             email: true,
           },
         },
-        location: true,
-        checklist: true,
+        booking: true,
       },
     });
 
@@ -47,14 +46,14 @@ export async function PATCH(
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json();
-    const { status, priority, description } = body;
+    const { status, priority, description, dueDate } = body;
 
     if (!params.taskId) {
       return new NextResponse("Task ID required", { status: 400 });
@@ -68,16 +67,17 @@ export async function PATCH(
         status,
         priority,
         description,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
       },
       include: {
-        assignee: {
+        cleaner: {
           select: {
             id: true,
             name: true,
             email: true,
           },
         },
-        location: true,
+        booking: true,
       },
     });
 
@@ -93,9 +93,16 @@ export async function DELETE(
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session) {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 

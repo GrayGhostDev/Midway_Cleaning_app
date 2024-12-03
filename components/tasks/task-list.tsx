@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,7 @@ export function TaskList({ searchQuery }: TaskListProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
       const data = await TaskService.getAll();
       setTasks(data);
@@ -54,7 +50,11 @@ export function TaskList({ searchQuery }: TaskListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [setTasks, setLoading, toast]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   async function handleStatusChange(taskId: number, newStatus: Task['status']) {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,11 +30,7 @@ export function ServiceList({ searchQuery }: ServiceListProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadServices();
-  }, []);
-
-  async function loadServices() {
+  const loadServices = useCallback(async () => {
     try {
       const data = await ServiceService.getAllServices();
       setServices(data);
@@ -47,7 +43,11 @@ export function ServiceList({ searchQuery }: ServiceListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadServices();
+  }, [loadServices]);
 
   const filteredServices = services.filter((service) =>
     service.name.toLowerCase().includes(searchQuery.toLowerCase())

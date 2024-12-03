@@ -1,82 +1,109 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { hash } from "bcryptjs";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
+import { AppError, handleError } from "@/lib/error-handler";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const { userId } = auth();
+    
+    if (!userId) {
+      throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        profile: true,
-        createdAt: true,
-      },
-    });
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
 
-    return NextResponse.json(users);
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
+      throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+    }
+
+    // Get all Clerk users
+    const users = await clerkClient.users.getUserList();
+
+    // Map Clerk users to our application's user format
+    const mappedUsers = users.map(user => ({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      email: user.emailAddresses[0]?.emailAddress,
+      role: user.publicMetadata.role || "CLIENT",
+      isActive: user.publicMetadata.isActive !== false,
+      phoneNumber: user.phoneNumbers[0]?.phoneNumber,
+      createdAt: user.createdAt,
+    }));
+
+    return NextResponse.json(mappedUsers);
   } catch (error) {
     console.error("[USERS_GET]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    return handleError(error);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+    }
 
-    if (!session || session.user.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const adminUser = await clerkClient.users.getUser(userId);
+    const adminRole = adminUser.publicMetadata.role as string;
+
+    if (!adminRole || adminRole !== "ADMIN") {
+      throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const body = await req.json();
-    const { name, email, password, role, profile } = body;
+    const { email, password, firstName, lastName, role, phoneNumber } = body;
 
-    if (!name || !email || !password) {
-      return new NextResponse("Missing required fields", { status: 400 });
+    if (!email || !password || !firstName) {
+      throw new AppError("Missing required fields", 400, "INVALID_REQUEST");
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return new NextResponse("User already exists", { status: 400 });
-    }
-
-    const hashedPassword = await hash(password, 12);
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        profile: {
-          create: profile,
+    try {
+      // Create a new user in Clerk
+      const newUser = await clerkClient.users.createUser({
+        emailAddress: [email],
+        password,
+        firstName,
+        lastName: lastName || "",
+        publicMetadata: {
+          role: role || "CLIENT",
+          isActive: true,
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        profile: true,
-      },
-    });
+      });
 
-    return NextResponse.json(user);
+      // Add phone number if provided
+      if (phoneNumber) {
+        await clerkClient.phoneNumbers.createPhoneNumber({
+          userId: newUser.id,
+          phoneNumber,
+        });
+      }
+
+      // Map the Clerk user to our application's user format
+      const mappedUser = {
+        id: newUser.id,
+        name: `${newUser.firstName} ${newUser.lastName}`.trim(),
+        email: newUser.emailAddresses[0]?.emailAddress,
+        role: newUser.publicMetadata.role || "CLIENT",
+        isActive: true,
+        phoneNumber: newUser.phoneNumbers[0]?.phoneNumber,
+      };
+
+      return NextResponse.json(mappedUser);
+    } catch (createError) {
+      console.error("[USER_CREATE]", createError);
+      throw new AppError(
+        (createError as Error).message || "Failed to create user",
+        400,
+        "USER_CREATE_ERROR"
+      );
+    }
   } catch (error) {
     console.error("[USERS_POST]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    return handleError(error);
   }
 }

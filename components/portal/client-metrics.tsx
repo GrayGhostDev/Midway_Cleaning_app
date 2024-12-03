@@ -27,7 +27,7 @@ export function ClientMetrics() {
     const fetchMetrics = async () => {
       try {
         // Simulated data
-        const data = [
+        const data: Metric[] = [
           {
             name: "Active Services",
             value: 3,
@@ -98,54 +98,54 @@ export function ClientMetrics() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {metrics.map((metric, index) => {
-        const Icon = metric.icon;
-        return (
-          <motion.div
-            key={metric.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-          >
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="p-2 bg-primary/10 rounded-full">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <h3 className="font-semibold">{metric.name}</h3>
+      {metrics.map((metric, index) => (
+        <motion.div
+          key={metric.name}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+        >
+          <Card className="p-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <metric.icon className="h-6 w-6 text-primary" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{metric.value}</span>
-                  {metric.trend && (
-                    <span className={`text-sm flex items-center ${
-                      metric.trendDirection === "up" ? "text-green-600" : "text-red-600"
-                    }`}>
-                      {metric.trendDirection === "up" ? (
-                        <ArrowUpRight className="mr-1 h-4 w-4" />
-                      ) : (
-                        <ArrowDownRight className="mr-1 h-4 w-4" />
-                      )}
-                      {metric.trend}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">
-                    {metric.description}
-                  </div>
-                  {metric.progress && (
-                    <Progress 
-                      value={metric.progress}
-                      className="h-1.5"
-                    />
-                  )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {metric.name}
+                  </p>
+                  <h3 className="text-2xl font-bold">{metric.value}</h3>
                 </div>
               </div>
-            </Card>
-          </motion.div>
-        );
-      })}
+              {metric.trend && (
+                <div className="flex items-center space-x-1">
+                  {metric.trendDirection === "up" ? (
+                    <ArrowUpRight className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <ArrowDownRight className="h-4 w-4 text-red-500" />
+                  )}
+                  <span
+                    className={`text-sm font-medium ${
+                      metric.trendDirection === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {metric.trend}
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {metric.description}
+            </p>
+            {metric.progress && (
+              <Progress value={metric.progress} className="mt-4" />
+            )}
+          </Card>
+        </motion.div>
+      ))}
     </div>
   );
 }

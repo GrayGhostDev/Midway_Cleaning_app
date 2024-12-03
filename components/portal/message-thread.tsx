@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Send, Paperclip, Loader2 } from "lucide-react";
-import { ClientService } from "@/lib/services/client.service";
+import { ClientService, ClientMessage } from "@/lib/services/client.service";
 import { useToast } from "@/components/ui/use-toast";
 
 interface MessageThreadProps {
@@ -24,17 +24,7 @@ export function MessageThread({ threadId }: MessageThreadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadThread();
-  }, [threadId]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [thread?.messages]);
-
-  async function loadThread() {
+  const loadThread = useCallback(async () => {
     try {
       setLoading(true);
       const data = await ClientService.getMessageThread(threadId);
@@ -48,7 +38,17 @@ export function MessageThread({ threadId }: MessageThreadProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [threadId, toast]);
+
+  useEffect(() => {
+    loadThread();
+  }, [loadThread]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [thread?.messages]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,11 +89,19 @@ export function MessageThread({ threadId }: MessageThreadProps) {
     );
   }
 
+  if (!thread) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">No messages found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[600px]">
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         <div className="space-y-4">
-          {thread?.messages.map((msg) => (
+          {thread.messages.map((msg) => (
             <div
               key={msg.id}
               className={`flex items-start gap-2 ${
@@ -101,19 +109,25 @@ export function MessageThread({ threadId }: MessageThreadProps) {
               }`}
             >
               <Avatar className="h-8 w-8">
-                {msg.sender.avatar && (
-                  <AvatarImage
-                    src={msg.sender.avatar}
-                    alt={msg.sender.name}
-                  />
-                )}
-                <AvatarFallback>{msg.sender.name[0]}</AvatarFallback>
+                <AvatarImage src={msg.sender.avatar} alt={msg.sender.name} />
+                <AvatarFallback>
+                  {msg.sender.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
               </Avatar>
               <div
                 className={`flex flex-col space-y-1 ${
                   msg.sender.role === "client" ? "items-end" : ""
                 }`}
               >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{msg.sender.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(msg.timestamp), "MMM d, h:mm a")}
+                  </span>
+                </div>
                 <div
                   className={`rounded-lg p-3 ${
                     msg.sender.role === "client"
@@ -122,56 +136,51 @@ export function MessageThread({ threadId }: MessageThreadProps) {
                   }`}
                 >
                   <p className="text-sm">{msg.content}</p>
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {msg.attachments.map((attachment) => (
-                        <a
-                          key={attachment.id}
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs underline"
-                        >
-                          {attachment.name}
-                        </a>
-                      ))}
-                    </div>
-                  )}
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(msg.timestamp), "h:mm a")}
-                </span>
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {msg.attachments.map((attachment) => (
+                      <a
+                        key={attachment.id}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {attachment.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
       </ScrollArea>
       <div className="border-t p-4">
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
-            disabled={sending}
-            className="flex-1"
-          />
-          <input
             type="file"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleFileSelect}
-            className="hidden"
             multiple
           />
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
-            disabled={sending}
             onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <Button type="submit" size="icon" disabled={sending}>
+          <Input
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={sending}>
             {sending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -180,10 +189,15 @@ export function MessageThread({ threadId }: MessageThreadProps) {
           </Button>
         </form>
         {files.length > 0 && (
-          <div className="mt-2">
-            <p className="text-sm text-muted-foreground">
-              {files.length} file(s) selected
-            </p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {files.map((file, index) => (
+              <div
+                key={index}
+                className="text-xs bg-muted rounded-full px-2 py-1"
+              >
+                {file.name}
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -38,7 +38,9 @@ const formSchema = z.object({
   category: z.string().min(1, "Please select a category"),
   duration: z.string().min(1, "Please enter the duration"),
   rate: z.string().min(1, "Please enter the rate"),
-  rateUnit: z.string().min(1, "Please select a rate unit"),
+  rateUnit: z.enum(["hour", "visit", "sqft"], {
+    required_error: "Please select a rate unit",
+  }),
   staffRequired: z.string().min(1, "Please enter required staff"),
 });
 
@@ -57,7 +59,7 @@ export function AddServiceDialog({ open, onOpenChange }: AddServiceDialogProps) 
       category: "",
       duration: "",
       rate: "",
-      rateUnit: "",
+      rateUnit: undefined,
       staffRequired: "",
     },
   });
@@ -212,7 +214,7 @@ export function AddServiceDialog({ open, onOpenChange }: AddServiceDialogProps) 
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select unit" />
+                          <SelectValue placeholder="Select rate unit" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

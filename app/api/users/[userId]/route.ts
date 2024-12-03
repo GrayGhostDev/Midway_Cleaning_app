@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
-import { hash } from "bcryptjs";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 
 export async function GET(
   req: Request,
   { params }: { params: { userId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId: currentUserId } = auth();
+    
+    if (!currentUserId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session) {
+    const currentUser = await clerkClient.users.getUser(currentUserId);
+    const userRole = currentUser.publicMetadata.role as string;
+
+    // Only allow admins, managers, or the user themselves to view user details
+    if (!userRole || 
+        (!["ADMIN", "MANAGER"].includes(userRole) && currentUserId !== params.userId)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -19,23 +27,20 @@ export async function GET(
       return new NextResponse("User ID required", { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: params.userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        profile: true,
-        tasks: true,
-        shifts: true,
-        certifications: true,
-      },
-    });
+    // Get user from Clerk
+    const user = await clerkClient.users.getUser(params.userId);
 
-    return NextResponse.json(user);
+    // Map Clerk user to our application's user format
+    const mappedUser = {
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      email: user.emailAddresses[0]?.emailAddress,
+      role: user.publicMetadata.role || "CLIENT",
+      isActive: user.publicMetadata.isActive !== false, // default to true if not set
+      phoneNumber: user.phoneNumbers[0]?.phoneNumber,
+    };
+
+    return NextResponse.json(mappedUser);
   } catch (error) {
     console.error("[USER_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
@@ -47,53 +52,90 @@ export async function PATCH(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || (session.user.id !== params.userId && session.user.role !== "ADMIN")) {
+    const { userId: currentUserId } = auth();
+    
+    if (!currentUserId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const { name, email, password, role, profile } = body;
+    const currentUser = await clerkClient.users.getUser(currentUserId);
+    const userRole = currentUser.publicMetadata.role as string;
+
+    // Only allow admins or the user themselves to update user details
+    if (!userRole || 
+        (userRole !== "ADMIN" && currentUserId !== params.userId)) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     if (!params.userId) {
       return new NextResponse("User ID required", { status: 400 });
     }
 
-    const updateData: any = {
-      name,
-      email,
-      role,
-    };
+    const body = await req.json();
+    const { firstName, lastName, email, role, isActive, phoneNumber } = body;
 
-    if (password) {
-      updateData.password = await hash(password, 12);
-    }
-
-    if (profile) {
-      updateData.profile = {
-        upsert: {
-          create: profile,
-          update: profile,
+    try {
+      // Update user in Clerk
+      const updatedUser = await clerkClient.users.updateUser(params.userId, {
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        publicMetadata: {
+          role: role || userRole, // Preserve existing role if not updating
+          isActive: isActive === undefined ? currentUser.publicMetadata.isActive : isActive,
         },
+      });
+
+      // Update email if provided
+      if (email) {
+        const primaryEmail = updatedUser.emailAddresses[0];
+        if (primaryEmail) {
+          await clerkClient.users.updateUserMetadata(params.userId, {
+            privateMetadata: {
+              ...updatedUser.privateMetadata,
+              primaryEmail: email,
+            },
+          });
+        } else {
+          await clerkClient.emailAddresses.createEmailAddress({
+            userId: params.userId,
+            emailAddress: email,
+          });
+        }
+      }
+
+      // Update phone if provided
+      if (phoneNumber) {
+        const primaryPhone = updatedUser.phoneNumbers[0];
+        if (primaryPhone) {
+          await clerkClient.users.updateUserMetadata(params.userId, {
+            privateMetadata: {
+              ...updatedUser.privateMetadata,
+              primaryPhone: phoneNumber,
+            },
+          });
+        } else {
+          await clerkClient.phoneNumbers.createPhoneNumber({
+            userId: params.userId,
+            phoneNumber: phoneNumber,
+          });
+        }
+      }
+
+      // Map updated Clerk user to our application's user format
+      const mappedUser = {
+        id: updatedUser.id,
+        name: `${updatedUser.firstName} ${updatedUser.lastName}`.trim(),
+        email: updatedUser.emailAddresses[0]?.emailAddress,
+        role: updatedUser.publicMetadata.role || "CLIENT",
+        isActive: updatedUser.publicMetadata.isActive !== false,
+        phoneNumber: updatedUser.phoneNumbers[0]?.phoneNumber,
       };
+
+      return NextResponse.json(mappedUser);
+    } catch (updateError) {
+      console.error("[USER_UPDATE]", updateError);
+      return new NextResponse("Error updating user", { status: 500 });
     }
-
-    const user = await prisma.user.update({
-      where: {
-        id: params.userId,
-      },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        profile: true,
-      },
-    });
-
-    return NextResponse.json(user);
   } catch (error) {
     console.error("[USER_PATCH]", error);
     return new NextResponse("Internal error", { status: 500 });
@@ -105,9 +147,17 @@ export async function DELETE(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId: currentUserId } = auth();
+    
+    if (!currentUserId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || session.user.role !== "ADMIN") {
+    const currentUser = await clerkClient.users.getUser(currentUserId);
+    const userRole = currentUser.publicMetadata.role as string;
+
+    // Only allow admins to delete users
+    if (!userRole || userRole !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -115,13 +165,18 @@ export async function DELETE(
       return new NextResponse("User ID required", { status: 400 });
     }
 
-    const user = await prisma.user.delete({
-      where: {
-        id: params.userId,
+    // Instead of deleting, we'll deactivate the user
+    const updatedUser = await clerkClient.users.updateUser(params.userId, {
+      publicMetadata: {
+        ...currentUser.publicMetadata,
+        isActive: false,
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({
+      id: updatedUser.id,
+      deactivated: true,
+    });
   } catch (error) {
     console.error("[USER_DELETE]", error);
     return new NextResponse("Internal error", { status: 500 });

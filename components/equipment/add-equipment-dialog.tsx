@@ -67,7 +67,6 @@ export function AddEquipmentDialog({ open, onOpenChange }: AddEquipmentDialogPro
         ...values,
         status: "Available",
         specifications: {},
-        maintenanceHistory: [],
       });
       
       toast({

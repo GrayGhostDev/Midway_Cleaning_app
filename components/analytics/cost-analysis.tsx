@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   BarChart,
@@ -11,20 +11,68 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  TooltipProps,
 } from "recharts";
-import { AnalyticsService, CostData } from "@/lib/services/analytics.service";
+import { AnalyticsService, CostData } from "../../lib/services/analytics.service";
 import { useToast } from "@/components/ui/use-toast";
+import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
-export function CostAnalysis() {
+interface TooltipPayload {
+  color: string;
+  value: number;
+  name: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+interface CostAnalysisProps {}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: TooltipProps<ValueType, NameType>) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid gap-2">
+          <div className="font-semibold">{label}</div>
+          {payload.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {item.name}:
+                </span>
+              </div>
+              <span className="text-sm font-medium">
+                ${Number(item.value).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+export function CostAnalysis({}: CostAnalysisProps) {
   const [data, setData] = useState<CostData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadCostData();
-  }, []);
-
-  async function loadCostData() {
+  const loadCostData = useCallback(async () => {
     try {
       const costData = await AnalyticsService.getCostAnalysis();
       setData(costData);
@@ -37,7 +85,11 @@ export function CostAnalysis() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadCostData();
+  }, [loadCostData]);
 
   if (loading) {
     return (
@@ -58,39 +110,7 @@ export function CostAnalysis() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="category" />
             <YAxis />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="rounded-lg border bg-background p-2 shadow-sm">
-                      <div className="grid gap-2">
-                        <div className="font-semibold">{label}</div>
-                        {payload.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: item.color }}
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                {item.name}:
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium">
-                              ${item.value.toLocaleString()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
+            <Tooltip content={CustomTooltip} />
             <Legend />
             <Bar
               dataKey="actual"
@@ -101,7 +121,7 @@ export function CostAnalysis() {
             <Bar
               dataKey="projected"
               name="Projected Cost"
-              fill="#64748b"
+              fill="#4ade80"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

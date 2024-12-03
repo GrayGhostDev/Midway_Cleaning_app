@@ -48,12 +48,14 @@ export function DocumentManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex-1 space-x-2">
-          <Input
-            placeholder="Search documents..."
-            className="max-w-sm"
-            type="search"
-            icon={<Search className="h-4 w-4" />}
-          />
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search documents..."
+              className="pl-9"
+              type="search"
+            />
+          </div>
         </div>
         <div className="flex space-x-2">
           <Select>

@@ -1,0 +1,87 @@
+/* Dashboard specific styles */
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.dashboard-card {
+  @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+  transition: transform 0.2s ease-in-out;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+}
+
+.stats-card {
+  @apply p-6 space-y-2;
+}
+
+.stats-card-value {
+  @apply text-2xl font-bold;
+}
+
+.stats-card-trend {
+  @apply flex items-center text-sm;
+}
+
+.stats-card-trend.positive {
+  @apply text-green-600;
+}
+
+.stats-card-trend.negative {
+  @apply text-red-600;
+}
+
+.chart-container {
+  @apply p-6 h-[400px];
+}
+
+.data-table-container {
+  @apply rounded-md border;
+}
+
+.data-table-header {
+  @apply bg-muted/50 p-4;
+}
+
+.data-table-cell {
+  @apply p-4 align-middle [&:has([role=checkbox])]:pr-0;
+}
+
+.data-table-row {
+  @apply border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted;
+}
+
+.search-input {
+  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.pagination {
+  @apply flex items-center justify-between px-2;
+}
+
+.pagination-button {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2;
+}
+
+.quick-action-button {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2;
+}
+
+.system-status-badge {
+  @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+}
+
+.system-status-badge.success {
+  @apply border-transparent bg-green-100 text-green-800;
+}
+
+.system-status-badge.warning {
+  @apply border-transparent bg-yellow-100 text-yellow-800;
+}
+
+.system-status-badge.error {
+  @apply border-transparent bg-red-100 text-red-800;
+}

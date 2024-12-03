@@ -24,6 +24,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
+import { Dispatch, SetStateAction } from "react";
 
 const formSchema = z.object({
   serviceType: z.string().min(1, "Please select a service type"),
@@ -35,7 +36,12 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function ServiceBookingForm() {
+interface ServiceBookingFormProps {
+  onServiceSelect: Dispatch<SetStateAction<number | null>>;
+  selectedService: number | null;
+}
+
+export function ServiceBookingForm({ onServiceSelect, selectedService }: ServiceBookingFormProps) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,17 +70,23 @@ export function ServiceBookingForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Service Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    onServiceSelect(parseInt(value));
+                  }} 
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select service type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="regular">Regular Cleaning</SelectItem>
-                    <SelectItem value="deep">Deep Cleaning</SelectItem>
-                    <SelectItem value="window">Window Cleaning</SelectItem>
-                    <SelectItem value="floor">Floor Maintenance</SelectItem>
+                    <SelectItem value="1">Regular Cleaning</SelectItem>
+                    <SelectItem value="2">Deep Cleaning</SelectItem>
+                    <SelectItem value="3">Window Cleaning</SelectItem>
+                    <SelectItem value="4">Floor Maintenance</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -107,10 +119,30 @@ export function ServiceBookingForm() {
 
           <FormField
             control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <Card className="p-4">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => date < new Date()}
+                    className="rounded-md border"
+                  />
+                </Card>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preferred Time</FormLabel>
+                <FormLabel>Time</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -118,9 +150,12 @@ export function ServiceBookingForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="morning">Morning (8AM - 12PM)</SelectItem>
-                    <SelectItem value="afternoon">Afternoon (12PM - 4PM)</SelectItem>
-                    <SelectItem value="evening">Evening (4PM - 8PM)</SelectItem>
+                    <SelectItem value="09:00">9:00 AM</SelectItem>
+                    <SelectItem value="10:00">10:00 AM</SelectItem>
+                    <SelectItem value="11:00">11:00 AM</SelectItem>
+                    <SelectItem value="13:00">1:00 PM</SelectItem>
+                    <SelectItem value="14:00">2:00 PM</SelectItem>
+                    <SelectItem value="15:00">3:00 PM</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -133,11 +168,10 @@ export function ServiceBookingForm() {
             name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Special Instructions (Optional)</FormLabel>
+                <FormLabel>Additional Notes</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Add any special requirements or instructions..."
-                    className="min-h-[100px]"
+                    placeholder="Any special requirements or instructions..."
                     {...field}
                   />
                 </FormControl>
@@ -146,29 +180,9 @@ export function ServiceBookingForm() {
             )}
           />
 
-          <Button type="submit" className="w-full">Book Service</Button>
+          <Button type="submit">Book Service</Button>
         </form>
       </Form>
-
-      <Card className="p-4">
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Select Date</FormLabel>
-              <Calendar
-                mode="single"
-                selected={field.value}
-                onSelect={field.onChange}
-                className="rounded-md border"
-                disabled={(date) => date < new Date()}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </Card>
     </div>
   );
 }

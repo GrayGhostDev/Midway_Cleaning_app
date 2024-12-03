@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
+    
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    if (!session || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+    const user = await clerkClient.users.getUser(userId);
+    const userRole = user.publicMetadata.role as string;
+
+    if (!userRole || !["ADMIN", "MANAGER"].includes(userRole)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -59,42 +66,46 @@ export async function GET(req: Request) {
       },
     });
 
-    const AVERAGE_HOURLY_RATE = 15; // This should come from configuration
-    const laborCost = (laborHours._sum.duration || 0) * AVERAGE_HOURLY_RATE;
+    const maintenanceCostValue = Number(maintenanceCosts._sum.cost || 0);
+    const supplyCostValue = Number(supplyCosts._sum.cost || 0);
+    const laborHoursValue = Number(laborHours._sum.duration || 0);
 
-    const costData = [
+    const data = [
       {
         category: "Equipment Maintenance",
-        actual: maintenanceCosts._sum.cost || 0,
-        projected: calculateProjectedCost("maintenance", maintenanceCosts._sum.cost || 0),
+        actual: maintenanceCostValue,
+        projected: calculateProjectedCost("maintenance", maintenanceCostValue),
       },
       {
         category: "Supplies",
-        actual: supplyCosts._sum.cost || 0,
-        projected: calculateProjectedCost("supplies", supplyCosts._sum.cost || 0),
+        actual: supplyCostValue,
+        projected: calculateProjectedCost("supplies", supplyCostValue),
       },
       {
         category: "Labor",
-        actual: laborCost,
-        projected: calculateProjectedCost("labor", laborCost),
+        actual: laborHoursValue * 15, // Assuming $15/hour average rate
+        projected: calculateProjectedCost("labor", laborHoursValue * 15),
       },
     ];
 
-    return NextResponse.json(costData);
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("[ANALYTICS_COSTS_GET]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error("Error fetching cost data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch cost data" },
+      { status: 500 }
+    );
   }
 }
 
 function calculateProjectedCost(category: string, actualCost: number): number {
-  // Implement projected cost calculation based on historical data and trends
-  // This is a simplified example
+  // Simple projection logic - can be made more sophisticated
   const projectionFactors = {
     maintenance: 1.1, // 10% increase
     supplies: 1.15,   // 15% increase
     labor: 1.05,      // 5% increase
   };
 
-  return actualCost * projectionFactors[category as keyof typeof projectionFactors];
+  const factor = projectionFactors[category as keyof typeof projectionFactors] || 1;
+  return actualCost * factor;
 }

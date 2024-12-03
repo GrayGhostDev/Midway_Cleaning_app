@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +32,7 @@ export function ServiceSchedule({ selectedDate }: ServiceScheduleProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadBookings();
-  }, [selectedDate]);
-
-  async function loadBookings() {
+  const loadBookings = useCallback(async () => {
     try {
       // In a real application, this would fetch from your API
       const mockBookings = [
@@ -72,12 +68,15 @@ export function ServiceSchedule({ selectedDate }: ServiceScheduleProps) {
       toast({
         title: "Error",
         description: "Failed to load bookings. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings, selectedDate]);
 
   if (loading) {
     return (

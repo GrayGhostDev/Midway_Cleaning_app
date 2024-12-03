@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { auth } from "@clerk/nextjs";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Staff utilization
     const totalStaff = await prisma.user.count({
       where: {
-        role: "EMPLOYEE",
+        role: "CLEANER",
       },
     });
 
@@ -37,32 +36,40 @@ export async function GET() {
       },
     });
 
+    const totalVehicles = await prisma.equipment.count({
+      where: {
+        category: "VEHICLE",
+      },
+    });
+
+    const activeVehicles = await prisma.equipment.count({
+      where: {
+        category: "VEHICLE",
+        status: "ACTIVE",
+      },
+    });
+
+    const vehicleUtilization = (activeVehicles / totalVehicles) * 100;
+
+    const cleaningEquipment = await prisma.equipment.count({
+      where: {
+        category: "CLEANING_EQUIPMENT",
+        status: "ACTIVE",
+      },
+    });
+
     // Supplies utilization
     const supplies = await prisma.inventoryItem.findMany({
       where: {
         category: "SUPPLIES",
       },
       select: {
-        quantity: true,
+        currentQuantity: true,
         minQuantity: true,
       },
     });
 
     const suppliesUtilization = calculateSuppliesUtilization(supplies);
-
-    // Vehicle utilization (if applicable)
-    const totalVehicles = await prisma.equipment.count({
-      where: {
-        type: "VEHICLE",
-      },
-    });
-
-    const inUseVehicles = await prisma.equipment.count({
-      where: {
-        type: "VEHICLE",
-        status: "IN_USE",
-      },
-    });
 
     const resourceData = [
       {
@@ -82,7 +89,7 @@ export async function GET() {
       },
       {
         subject: "Vehicles",
-        current: totalVehicles ? (inUseVehicles / totalVehicles) * 100 : 0,
+        current: totalVehicles ? vehicleUtilization : 0,
         optimal: 80,
       },
     ];
@@ -98,7 +105,7 @@ function calculateSuppliesUtilization(supplies: any[]): number {
   if (!supplies.length) return 0;
   
   const utilization = supplies.reduce((acc, supply) => {
-    const ratio = supply.quantity / supply.minQuantity;
+    const ratio = supply.currentQuantity / supply.minQuantity;
     return acc + (ratio >= 1 ? 100 : ratio * 100);
   }, 0);
 

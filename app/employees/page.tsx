@@ -9,6 +9,22 @@ import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
 import { EmployeeFilters } from "@/components/employees/employee-filters";
 import { EmployeeMetrics } from "@/components/employees/employee-metrics";
 
+// Mock data for employee metrics
+const mockEmployeeMetrics = {
+  totalEmployees: 25,
+  activeEmployees: 22,
+  employeeGrowth: 8,
+  employeesByRole: [
+    { role: "Cleaner", count: 15 },
+    { role: "Supervisor", count: 5 },
+    { role: "Manager", count: 2 },
+  ],
+  employeeHistory: Array.from({ length: 12 }, (_, i) => ({
+    date: new Date(2023, i, 1).toISOString().split('T')[0],
+    value: Math.floor(Math.random() * 10) + 20,
+  })),
+};
+
 export default function EmployeesPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -30,7 +46,7 @@ export default function EmployeesPage() {
         </Button>
       </div>
 
-      <EmployeeMetrics />
+      <EmployeeMetrics {...mockEmployeeMetrics} />
       
       <div className="flex items-center space-x-2">
         <Input

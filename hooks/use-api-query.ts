@@ -54,7 +54,8 @@ export function useApiQuery<T>(
   ): Promise<T> => {
     try {
       return await fn();
-    } catch (err) {
+    } catch (error) {
+      const err = error as ApiError;
       if (retriesLeft === 0) throw err;
       
       // Don't retry on certain error codes
@@ -99,7 +100,7 @@ export function useApiQuery<T>(
         options.retryDelay ?? 1000
       );
 
-      // Update cache
+      // Cache the result
       queryCache.set(queryKey, {
         data: result,
         timestamp: Date.now(),
@@ -121,16 +122,27 @@ export function useApiQuery<T>(
     } finally {
       setLoading(false);
     }
-  }, [queryKey, queryFn, options]);
+  }, [
+    queryKey,
+    queryFn,
+    options,
+    executeWithRetry,
+    getCachedData,
+    handleApiError,
+    toast,
+  ]);
 
   useEffect(() => {
-    if (options.enabled !== false) {
-      fetchData();
+    if (options.enabled === false) {
+      setLoading(false);
+      return;
+    }
 
-      // Setup polling if configured
-      if (options.pollInterval) {
-        pollTimeoutRef.current = setInterval(fetchData, options.pollInterval);
-      }
+    void fetchData();
+
+    // Setup polling if interval is provided
+    if (options.pollInterval) {
+      pollTimeoutRef.current = setInterval(fetchData, options.pollInterval);
     }
 
     return () => {
@@ -145,10 +157,5 @@ export function useApiQuery<T>(
     loading,
     error,
     refetch: fetchData,
-    reset: () => {
-      setData(null);
-      setError(null);
-      queryCache.delete(queryKey);
-    },
   };
 }

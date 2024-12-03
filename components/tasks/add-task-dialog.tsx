@@ -30,12 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { TaskService } from "@/lib/services/task.service";
+import { TaskService, Task } from "@/lib/services/task.service";
 
 const formSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  priority: z.string().min(1, "Please select a priority"),
+  priority: z.enum(['Low', 'Medium', 'High', 'Urgent'] as const),
   location: z.string().min(1, "Please select a location"),
   assigneeId: z.string().min(1, "Please select an assignee"),
   dueDate: z.string().min(1, "Please select a due date"),
@@ -53,7 +53,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     defaultValues: {
       title: "",
       description: "",
-      priority: "",
+      priority: "Medium",
       location: "",
       assigneeId: "",
       dueDate: "",

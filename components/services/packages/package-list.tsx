@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,7 @@ export function PackageList({ searchQuery }: PackageListProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadPackages();
-  }, []);
-
-  async function loadPackages() {
+  const loadPackages = useCallback(async () => {
     try {
       const data = await ServiceService.getServicePackages();
       setPackages(data);
@@ -35,12 +31,15 @@ export function PackageList({ searchQuery }: PackageListProps) {
       toast({
         title: "Error",
         description: "Failed to load service packages. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages]);
 
   const filteredPackages = packages.filter((pkg) =>
     pkg.name.toLowerCase().includes(searchQuery.toLowerCase())

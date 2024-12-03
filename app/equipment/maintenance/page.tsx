@@ -7,9 +7,12 @@ import { MaintenanceSchedule } from "@/components/equipment/maintenance-schedule
 import { MaintenanceHistory } from "@/components/equipment/maintenance-history";
 import { MaintenanceRequestDialog } from "@/components/equipment/maintenance-request-dialog";
 import { Wrench, ClipboardList, Plus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function MaintenancePage() {
   const [open, setOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const equipmentId = searchParams.get('id') || 'all';
 
   return (
     <div className="space-y-6">
@@ -44,7 +47,7 @@ export default function MaintenancePage() {
         </TabsContent>
 
         <TabsContent value="history">
-          <MaintenanceHistory />
+          <MaintenanceHistory equipmentId={equipmentId} />
         </TabsContent>
       </Tabs>
 
