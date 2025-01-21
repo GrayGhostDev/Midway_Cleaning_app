@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function ServiceBooking() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Book a Service</Card.Title>
-        <Card.Description>Schedule your next cleaning service</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Book a Service</CardTitle>
+        <CardDescription>Schedule your next cleaning service</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Service booking component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Book Now</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

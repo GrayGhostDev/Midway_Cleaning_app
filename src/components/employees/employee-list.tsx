@@ -1,99 +1,125 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { DataTable } from '@/components/dashboard/ui/data-table';
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive';
-}
-
-const columns = [
-  {
-    header: 'Name',
-    accessorKey: 'name',
-  },
-  {
-    header: 'Email',
-    accessorKey: 'email',
-  },
-  {
-    header: 'Role',
-    accessorKey: 'role',
-  },
-  {
-    header: 'Status',
-    accessorKey: 'status',
-    cell: ({ value }: { value: string }) => (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          value === 'active'
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
-        }`}
-      >
-        {value}
-      </span>
-    ),
-  },
-];
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { AddEmployeeDialog } from './add-employee-dialog';
+import { Employee, EmployeeService } from '@/lib/services/employee.service';
 
 export function EmployeeList() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [employees] = useState<Employee[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      role: 'Cleaner',
-      status: 'active',
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      role: 'Supervisor',
-      status: 'active',
-    },
-    // Add more employees as needed
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const loadEmployees = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await EmployeeService.getAll();
+      setEmployees(data);
+    } catch (err) {
+      console.error('Failed to load employees:', err);
+      setError('Failed to load employees. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
+    try {
+      setError(null);
+      await EmployeeService.create(newEmployee);
+      await loadEmployees();
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to add employee:', err);
+      setError('Failed to add employee. Please try again.');
+    }
+  };
 
   const filteredEmployees = employees.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Employee List</CardTitle>
-        <CardDescription>View and manage employees</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Search employees..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-[300px]"
-              />
-            </div>
-            <Button>Add Employee</Button>
-          </div>
+  if (isLoading) {
+    return <div className="text-center py-4">Loading employees...</div>;
+  }
 
-          <DataTable
-            title="Employees"
-            description="Manage your employees and their roles"
-            columns={columns}
-            data={filteredEmployees}
-          />
-        </div>
-      </CardContent>
-    </Card>
+  if (error) {
+    return (
+      <div className="text-center py-4 text-red-500">
+        {error}
+        <Button
+          variant="outline"
+          className="ml-2"
+          onClick={() => loadEmployees()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Input
+          placeholder="Search employees..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Button onClick={() => setIsDialogOpen(true)}>Add Employee</Button>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredEmployees.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center">
+                No employees found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredEmployees.map((employee) => (
+              <TableRow key={employee.id}>
+                <TableCell>{employee.name}</TableCell>
+                <TableCell>{employee.email}</TableCell>
+                <TableCell>{employee.role}</TableCell>
+                <TableCell>{employee.status}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+
+      <AddEmployeeDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onAdd={handleAddEmployee}
+      />
+    </div>
   );
 }

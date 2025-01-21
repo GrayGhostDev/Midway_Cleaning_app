@@ -3,14 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PerformanceMetrics } from "@/components/analytics/performance-metrics";
-import { RevenuePerformance } from "@/components/analytics/performance-metrics";
-import { CostAnalysis } from "@/components/analytics/cost-analysis";
-import { CostBreakdown } from "@/components/analytics/cost-analysis";
-import { CustomerSatisfaction } from "@/components/analytics/customer-satisfaction";
-import { SatisfactionMetrics } from "@/components/analytics/customer-satisfaction";
-import { ResourceUtilization } from "@/components/analytics/resource-utilization";
-import { ResourceMetrics } from "@/components/analytics/resource-utilization";
+import { PerformanceMetrics } from "../../components/analytics/performance-metrics";
+import { ResourceUtilization } from "../../components/analytics/resource-utilization";
 import { BarChart3, DollarSign, Heart, Box } from "lucide-react";
 import { AnalyticsService, type DashboardMetrics } from "@/lib/services/analytics.service";
 import { useToast } from "@/components/ui/use-toast";
@@ -103,52 +97,18 @@ export default function AnalyticsPage() {
       <Tabs defaultValue="performance" className="space-y-4">
         <TabsList>
           <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="costs">Costs</TabsTrigger>
-          <TabsTrigger value="satisfaction">Satisfaction</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance">
           <div className="grid gap-4">
             <PerformanceMetrics />
-            <RevenuePerformance revenue={{
-              total: 0,
-              trend: 0,
-              data: []
-            }} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="costs">
-          <div className="grid gap-4">
-            <CostAnalysis />
-            <CostBreakdown costs={{
-              total: 0,
-              trend: 0,
-              data: []
-            }} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="satisfaction">
-          <div className="grid gap-4">
-            <CustomerSatisfaction />
-            <SatisfactionMetrics satisfaction={{
-              average: 0,
-              trend: 0,
-              data: []
-            }} />
           </div>
         </TabsContent>
 
         <TabsContent value="resources">
           <div className="grid gap-4">
             <ResourceUtilization />
-            <ResourceMetrics utilization={{
-              rate: 0,
-              trend: 0,
-              data: []
-            }} />
           </div>
         </TabsContent>
       </Tabs>

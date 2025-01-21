@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface FeedbackFormData {
   serviceId: string
@@ -66,11 +66,11 @@ export function FeedbackForm() {
 
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Service Feedback</Card.Title>
-        <Card.Description>Help us improve our service</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Service Feedback</CardTitle>
+        <CardDescription>Help us improve our service</CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Select Service</label>
@@ -129,7 +129,7 @@ export function FeedbackForm() {
             Submit Feedback
           </button>
         </form>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

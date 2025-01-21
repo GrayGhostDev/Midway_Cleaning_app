@@ -1,21 +1,20 @@
 import { fetchAPI } from './api';
 
 export interface Employee {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
-  image: string;
-  performance: number;
   status: string;
-  location: string;
+  location?: string;
 }
 
 export interface CreateEmployeeDTO {
   name: string;
   email: string;
   role: string;
-  location: string;
+  status: string;
+  location?: string;
 }
 
 export class EmployeeService {
@@ -23,25 +22,25 @@ export class EmployeeService {
     return fetchAPI<Employee[]>('/employees');
   }
 
-  static async getById(id: number): Promise<Employee> {
+  static async getById(id: string): Promise<Employee> {
     return fetchAPI<Employee>(`/employees/${id}`);
   }
 
-  static async create(data: CreateEmployeeDTO): Promise<Employee> {
+  static async create(employee: CreateEmployeeDTO): Promise<Employee> {
     return fetchAPI<Employee>('/employees', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(employee),
     });
   }
 
-  static async update(id: number, data: Partial<CreateEmployeeDTO>): Promise<Employee> {
+  static async update(id: string, employee: Partial<Employee>): Promise<Employee> {
     return fetchAPI<Employee>(`/employees/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(employee),
     });
   }
 
-  static async delete(id: number): Promise<void> {
+  static async delete(id: string): Promise<void> {
     return fetchAPI<void>(`/employees/${id}`, {
       method: 'DELETE',
     });

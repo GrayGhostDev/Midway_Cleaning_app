@@ -38,6 +38,29 @@ export interface ResourceData {
   optimal: number;
 }
 
+export interface DashboardData {
+  revenue: {
+    total: number;
+    trend: number;
+    data: { date: string; value: number }[];
+  };
+  customers: {
+    total: number;
+    trend: number;
+    data: { date: string; value: number }[];
+  };
+  satisfaction: {
+    average: number;
+    trend: number;
+    data: { date: string; value: number }[];
+  };
+  utilization: {
+    rate: number;
+    trend: number;
+    data: { date: string; value: number }[];
+  };
+}
+
 export class AnalyticsService {
   static async getDashboardMetrics(): Promise<DashboardMetrics> {
     return fetchAPI<DashboardMetrics>('/analytics/dashboard');
@@ -65,4 +88,13 @@ export class AnalyticsService {
       body: JSON.stringify({ type, dateRange }),
     });
   }
+
+  static async getAnalyticsData(startDate: Date, endDate: Date): Promise<DashboardData> {
+    return fetchAPI<DashboardData>('/analytics/dashboard-data', {
+      method: 'POST',
+      body: JSON.stringify({ startDate, endDate }),
+    });
+  }
 }
+
+export const getAnalyticsData = AnalyticsService.getAnalyticsData;

@@ -29,6 +29,20 @@ enum PaymentStatus {
   FAILED
 }
 
+enum Role {
+  ADMIN
+  STAFF
+  CLIENT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id            String    @id @default(cuid())
   createdAt     DateTime  @default(now())
@@ -49,6 +63,8 @@ model User {
   tasks         Task[]
   feedback      Feedback[]
   reports       Report[]
+  clerkId       String    @unique
+  profile       Profile?
 
   @@index([email])
   @@index([role])
@@ -88,7 +104,7 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   date          DateTime
-  status        ServiceStatus @default(PENDING)
+  status        BookingStatus @default(PENDING)
   userId        String
   user          User          @relation(fields: [userId], references: [id])
   serviceId     String
@@ -332,4 +348,15 @@ model Report {
   @@index([generatedBy])
   @@index([startDate])
   @@index([endDate])
+}
+
+model Profile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  firstName String?
+  lastName  String?
+  phone     String?
+  address   String?
+  company   String?
 }

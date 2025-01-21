@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClipboardCheck, Plus, Filter } from "lucide-react";
-import { InspectionList } from "@/components/quality/inspection-list";
-import { AddInspectionDialog } from "@/components/quality/add-inspection-dialog";
+import { InspectionList } from "../../components/quality/inspection-list";
+import { AddInspectionDialog } from "../../components/quality/add-inspection-dialog";
 import { QualityMetrics } from "@/components/quality/quality-metrics";
 
 export default function QualityPage() {

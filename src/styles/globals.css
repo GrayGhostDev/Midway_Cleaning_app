@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+}
+
+[data-theme="dark"] {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+}
+
+[data-theme="light"] {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+}
+
+body {
+  @apply bg-black text-white;
+}
+
+* {
+  @apply transition-colors duration-200;
+} 

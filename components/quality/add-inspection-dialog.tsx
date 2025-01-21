@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../../components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -19,17 +19,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/components/ui/use-toast";
+} from "../../components/ui/select";
+import { Checkbox } from "../../components/ui/checkbox";
+import { useToast } from "../../components/ui/use-toast";
 
 const formSchema = z.object({
   location: z.string().min(1, "Please select a location"),
@@ -192,10 +192,12 @@ export function AddInspectionDialog({ open, onOpenChange }: AddInspectionDialogP
                             <FormControl>
                               <Checkbox
                                 checked={field.value?.includes(item)}
-                                onCheckedChange={(checked) => {
-                                  const values = new Set(field.value);
-                                  checked ? values.add(item) : values.delete(item);
-                                  field.onChange(Array.from(values));
+                                onCheckedChange={(checked: boolean | "indeterminate") => {
+                                  if (typeof checked === "boolean") {
+                                    const values = new Set(field.value);
+                                    checked ? values.add(item) : values.delete(item);
+                                    field.onChange(Array.from(values));
+                                  }
                                 }}
                               />
                             </FormControl>

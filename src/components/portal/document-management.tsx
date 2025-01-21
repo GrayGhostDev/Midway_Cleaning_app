@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface Document {
   id: string
@@ -111,11 +111,11 @@ export function DocumentManagement() {
 
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Documents</Card.Title>
-        <Card.Description>Manage your cleaning service documents</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Documents</CardTitle>
+        <CardDescription>Manage your cleaning service documents</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-4">
           <div className="flex justify-end">
             <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
@@ -153,7 +153,7 @@ export function DocumentManagement() {
             ))}
           </div>
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

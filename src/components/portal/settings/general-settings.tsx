@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function GeneralSettings() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>General Settings</Card.Title>
-        <Card.Description>Manage your account preferences</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>General Settings</CardTitle>
+        <CardDescription>Manage your account preferences</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           General settings component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Save Settings</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

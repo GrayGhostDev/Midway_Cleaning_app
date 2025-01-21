@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function PaymentForm() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Payment Details</Card.Title>
-        <Card.Description>Enter your payment information</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Payment Details</CardTitle>
+        <CardDescription>Enter your payment information</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Payment form component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Submit Payment</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

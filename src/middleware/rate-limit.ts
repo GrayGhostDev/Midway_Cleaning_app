@@ -1,109 +1,65 @@
-import { Redis } from 'ioredis';
+import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getRequestIp } from '@/utils/request';
+import { getRequestIp } from '../utils/request';
 
-const redis = new Redis(process.env.REDIS_URL!);
+const redis = new Redis({
+  url: process.env.REDIS_URL!,
+  token: process.env.REDIS_TOKEN!,
+});
 
 interface RateLimitConfig {
-  windowMs: number;  // Time window in milliseconds
-  max: number;       // Max number of requests per window
-  message?: string;  // Custom error message
+  window: number;  // Time window in milliseconds
+  max: number;     // Max number of requests per window
 }
 
 const defaultConfig: RateLimitConfig = {
-  windowMs: 60 * 1000, // 1 minute
-  max: 100,           // 100 requests per minute
-  message: 'Too many requests, please try again later',
+  window: 60 * 1000, // 1 minute
+  max: 100,         // 100 requests per minute
 };
 
 export async function rateLimit(
-  req: NextRequest,
-  config: Partial<RateLimitConfig> = {}
+  request: NextRequest,
+  config: RateLimitConfig = defaultConfig
 ) {
-  const { windowMs, max, message } = { ...defaultConfig, ...config };
-  const ip = getRequestIp(req);
-  const key = `rate-limit:${ip}:${req.nextUrl.pathname}`;
-
-  try {
-    // Use Redis MULTI to ensure atomic operations
-    const multi = redis.multi();
-    
-    // Get current count
-    multi.get(key);
-    // Increment count
-    multi.incr(key);
-    // Set expiry if key is new
-    multi.expire(key, Math.ceil(windowMs / 1000));
-
-    const results = await multi.exec();
-    if (!results) throw new Error('Redis transaction failed');
-
-    const [, [, count]] = results;
-    const remaining = Math.max(0, max - (count as number));
-
-    // Set rate limit headers
-    const headers = new Headers({
-      'X-RateLimit-Limit': max.toString(),
-      'X-RateLimit-Remaining': remaining.toString(),
-      'X-RateLimit-Reset': (Date.now() + windowMs).toString(),
-    });
-
-    // If limit exceeded, return error response
-    if (count > max) {
-      return new NextResponse(
-        JSON.stringify({
-          error: 'Too Many Requests',
-          message: message || defaultConfig.message,
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            ...Object.fromEntries(headers.entries()),
-          },
-        }
-      );
-    }
-
-    // Add headers to original response
-    const response = NextResponse.next();
-    headers.forEach((value, key) => {
-      response.headers.set(key, value);
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Rate limiting error:', error);
-    // On error, allow request to proceed but log the error
-    return NextResponse.next();
+  const ip = getRequestIp(request);
+  const key = `rate-limit:${ip}`;
+  
+  const current = await redis.incr(key);
+  if (current === 1) {
+    await redis.expire(key, config.window / 1000);
   }
+
+  const headers = new Headers({
+    'X-RateLimit-Limit': config.max.toString(),
+    'X-RateLimit-Remaining': Math.max(0, config.max - current).toString(),
+    'X-RateLimit-Reset': (Date.now() + config.window).toString(),
+  });
+
+  if (current > config.max) {
+    return new NextResponse('Too Many Requests', { 
+      status: 429,
+      headers
+    });
+  }
+
+  const response = NextResponse.next();
+  headers.forEach((value, key) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
 }
 
-// Specialized rate limiters for different endpoints
+// Specialized rate limiters with different configurations
 export const apiRateLimit = (req: NextRequest) =>
-  rateLimit(req, {
-    windowMs: 60 * 1000,     // 1 minute
-    max: 100,                // 100 requests per minute
-  });
+  rateLimit(req, { window: 60 * 1000, max: 100 });
 
 export const authRateLimit = (req: NextRequest) =>
-  rateLimit(req, {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5,                   // 5 attempts
-    message: 'Too many login attempts, please try again later',
-  });
+  rateLimit(req, { window: 15 * 60 * 1000, max: 5 });
 
 export const uploadRateLimit = (req: NextRequest) =>
-  rateLimit(req, {
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10,                  // 10 uploads
-    message: 'Upload limit exceeded, please try again later',
-  });
+  rateLimit(req, { window: 60 * 60 * 1000, max: 10 });
 
 export const websocketRateLimit = (req: NextRequest) =>
-  rateLimit(req, {
-    windowMs: 60 * 1000,     // 1 minute
-    max: 60,                 // 60 messages per minute
-    message: 'Message rate limit exceeded, please slow down',
-  });
+  rateLimit(req, { window: 60 * 1000, max: 60 });

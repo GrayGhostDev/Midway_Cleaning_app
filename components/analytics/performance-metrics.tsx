@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { AnalyticsService, PerformanceData } from "../../lib/services/analytics.service";
+import { AnalyticsService, PerformanceData } from "@/lib/services/analytics.service";
 import { useToast } from "@/components/ui/use-toast";
 
 interface PerformanceMetricsProps {}
@@ -30,7 +30,6 @@ export function PerformanceMetrics({}: PerformanceMetricsProps) {
       toast({
         title: "Error",
         description: "Failed to load performance data. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);

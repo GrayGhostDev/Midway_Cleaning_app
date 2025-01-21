@@ -1,5 +1,5 @@
 // Base API configuration and utilities
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export class APIError extends Error {
   constructor(public status: number, message: string) {
@@ -55,91 +55,32 @@ export async function fetchAPI<T>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const {
-    timeout = 8000,
-    retries = 3,
-    backoff = 1000,
-    requiresAuth = true,
-    headers = {},
-    ...fetchOptions
-  } = options;
+  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  
+  const defaultOptions: FetchOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    timeout: 5000,
+    retries: 3,
+    backoff: 300,
+    requiresAuth: true,
+  };
 
-  let attempt = 0;
-  while (attempt < retries) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      let requestHeaders = new Headers(headers);
-
-      if (requiresAuth) {
-        const token = await getAuthToken();
-        if (!token) {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
-          throw new APIError(401, 'Authentication required');
-        }
-        requestHeaders.set('Authorization', `Bearer ${token}`);
-      }
-
-      requestHeaders.set('Content-Type', 'application/json');
-
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...fetchOptions,
-        headers: requestHeaders,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          if (typeof window !== 'undefined') {
-            // Clear invalid token
-            document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            localStorage.removeItem('auth-token');
-            window.location.href = '/login';
-          }
-          throw new APIError(401, 'Authentication required');
-        }
-
-        const errorData = await response.json().catch(() => ({}));
-        throw new APIError(
-          response.status,
-          errorData.error || 'An error occurred while processing your request'
-        );
-      }
-
-      // Handle rate limiting
-      if (await handleRateLimit(response, attempt, retries, backoff)) {
-        attempt++;
-        continue;
-      }
-
-      return await response.json();
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error instanceof APIError) {
-        throw error;
-      }
-
-      if (error.name === 'AbortError') {
-        throw new APIError(408, 'Request timeout');
-      }
-
-      if (attempt < retries - 1) {
-        await sleep(backoff * Math.pow(2, attempt));
-        attempt++;
-        continue;
-      }
-
-      throw new APIError(500, error.message || 'Internal server error');
+  const finalOptions = { ...defaultOptions, ...options };
+  
+  try {
+    const response = await fetch(url, finalOptions);
+    
+    if (!response.ok) {
+      throw new APIError(response.status, `API request failed: ${response.statusText}`);
     }
+    
+    return response.json();
+  } catch (error) {
+    console.error('API request error:', error);
+    throw error;
   }
-
-  throw new APIError(500, 'Maximum retries exceeded');
 }
 
 // Auth helper functions
