@@ -30,7 +30,7 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.370.0",
+    "@aws-sdk/client-s3": "^3.731.1",
     "@clerk/nextjs": "^4.29.3",
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^5.0.0",
@@ -56,7 +56,7 @@
     "axios": "^1.0.0",
     "bcrypt": "^5.0.0",
     "bull": "^4.0.0",
-    "chart.js": "^4.0.0",
+    "chart.js": "^4.4.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -92,13 +92,13 @@
     "k6": "^0.0.0",
     "lint-staged": "^14.0.0",
     "msw": "^1.0.0",
-    "postcss": "^8.4.24",
+    "postcss": "^8.5.1",
     "prettier": "^3.0.0",
     "prisma": "^5.0.0",
-    "tailwindcss": "^3.0.0",
+    "tailwindcss": "^3.4.17",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.0.0"
+    "typescript": "^5.7.3"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
