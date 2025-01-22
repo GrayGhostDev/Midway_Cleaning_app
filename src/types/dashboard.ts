@@ -20,6 +20,9 @@ export interface DashboardStats {
   metrics: DashboardMetric[];
   recentBookings: Booking[];
   chartData: ChartData;
+  totalTasks: number;
+  totalRevenue: number;
+  totalCleaners: number;
 }
 
 export interface Booking {
@@ -31,4 +34,23 @@ export interface Booking {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface TasksResponse {
+  tasks: {
+    id: string;
+    title: string;
+    cleaner: {
+      name: string | null;
+    } | null;
+    status: string;
+    priority: string;
+    dueDate: string | null;
+    booking: {
+      service: {
+        name: string;
+      };
+    } | null;
+  }[];
+  totalTasks: number;
 } 

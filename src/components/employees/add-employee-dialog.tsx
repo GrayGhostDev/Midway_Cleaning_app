@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,44 +37,48 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.string().min(1, "Please select a role"),
   location: z.string().optional(),
-  status: z.string().optional().default('active')
+  status: z.string().optional().default('Active')
 });
 
 interface AddEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd?: (employee: CreateEmployeeDTO) => void;
+  onAdd: (employee: CreateEmployeeDTO) => Promise<void>;
 }
 
 export function AddEmployeeDialog({ open, onOpenChange, onAdd }: AddEmployeeDialogProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       email: "",
       role: "",
-      location: "Main Office",
-      status: "active"
+      location: "",
+      status: "Active"
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      if (onAdd) {
-        await onAdd(values);
-        toast({
-          title: "Success",
-          description: `${values.name} has been added to the team.`,
-        });
-        form.reset();
-        onOpenChange(false);
-      }
+      setIsSubmitting(true);
+      await onAdd(values);
+      toast({
+        title: "Success",
+        description: `${values.name} has been added to the team.`,
+      });
+      form.reset();
+      onOpenChange(false);
     } catch (error) {
+      console.error('Failed to add employee:', error);
       toast({
         title: "Error",
-        description: "Failed to add employee. Please try again."
+        description: "Failed to add employee. Please try again.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -129,8 +133,31 @@ export function AddEmployeeDialog({ open, onOpenChange, onAdd }: AddEmployeeDial
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="cleaner">Cleaner</SelectItem>
+                      <SelectItem value="senior-cleaner">Senior Cleaner</SelectItem>
+                      <SelectItem value="team-lead">Team Lead</SelectItem>
                       <SelectItem value="supervisor">Supervisor</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="downtown">Downtown Office</SelectItem>
+                      <SelectItem value="medical-center">Medical Center</SelectItem>
+                      <SelectItem value="tech-park">Tech Park</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -138,7 +165,9 @@ export function AddEmployeeDialog({ open, onOpenChange, onAdd }: AddEmployeeDial
               )}
             />
             <DialogFooter>
-              <Button type="submit">Add Employee</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add Employee"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

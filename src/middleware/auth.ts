@@ -57,3 +57,40 @@ export function withRole(...roles: UserRole[]) {
 //   const { user } = req;
 //   // ... handle request
 // });
+
+type AllowedRoles = 'ADMIN' | 'MANAGER' | 'CLEANER' | 'CLIENT';
+
+export async function checkRole(allowedRoles: AllowedRoles[]) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { role: true }
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'User not found' }, { status: 404 })
+    };
+  }
+
+  if (!allowedRoles.includes(user.role as AllowedRoles)) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    };
+  }
+
+  return {
+    success: true,
+    role: user.role
+  };
+}

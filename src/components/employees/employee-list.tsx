@@ -11,10 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { AddEmployeeDialog } from './add-employee-dialog';
+import { AddEmployeeDialog } from '@/components/employees/add-employee-dialog';
 import { Employee, EmployeeService } from '@/lib/services/employee.service';
+import { useToast } from '@/components/ui/use-toast';
 
 export function EmployeeList() {
+  const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +32,10 @@ export function EmployeeList() {
     } catch (err) {
       console.error('Failed to load employees:', err);
       setError('Failed to load employees. Please try again later.');
+      toast({
+        title: "Error",
+        description: "Failed to load employees. Please try again later.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -45,9 +51,17 @@ export function EmployeeList() {
       await EmployeeService.create(newEmployee);
       await loadEmployees();
       setIsDialogOpen(false);
+      toast({
+        title: "Success",
+        description: `${newEmployee.name} has been added to the team.`,
+      });
     } catch (err) {
       console.error('Failed to add employee:', err);
-      setError('Failed to add employee. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to add employee. Please try again.",
+      });
+      throw err;
     }
   };
 
@@ -93,12 +107,13 @@ export function EmployeeList() {
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Location</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredEmployees.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center">
+              <TableCell colSpan={5} className="text-center">
                 No employees found
               </TableCell>
             </TableRow>
@@ -109,6 +124,7 @@ export function EmployeeList() {
                 <TableCell>{employee.email}</TableCell>
                 <TableCell>{employee.role}</TableCell>
                 <TableCell>{employee.status}</TableCell>
+                <TableCell>{employee.location}</TableCell>
               </TableRow>
             ))
           )}

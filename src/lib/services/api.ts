@@ -65,18 +65,40 @@ export async function fetchAPI<T>(
     retries: 3,
     backoff: 300,
     requiresAuth: true,
+    credentials: 'include',
+    mode: 'cors',
   };
 
   const finalOptions = { ...defaultOptions, ...options };
+  const headers = new Headers(finalOptions.headers);
+
+  // Add auth token if required
+  if (finalOptions.requiresAuth) {
+    const token = await getAuthToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
+  finalOptions.headers = headers;
   
   try {
-    const response = await fetch(url, finalOptions);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), finalOptions.timeout);
+    
+    const response = await fetch(url, {
+      ...finalOptions,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new APIError(response.status, `API request failed: ${response.statusText}`);
     }
     
-    return response.json();
+    const data = await response.json() as T;
+    return data;
   } catch (error) {
     console.error('API request error:', error);
     throw error;
