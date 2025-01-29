@@ -50,3 +50,6 @@ tailwind.config.js
 
 # Setup duplicates
 jest.setup.js
+
+# GitHub workflows
+!.github/workflows/
