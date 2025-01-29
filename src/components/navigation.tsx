@@ -31,7 +31,7 @@ export function Navigation() {
             <Link href="/" className="flex items-center space-x-2">
               <div className="relative h-8 w-8">
                 <Image
-                  src="/midway-logo.png"
+                  src="/midway-logo.jpg"
                   alt="Midway Cleaning Co."
                   width={32}
                   height={32}

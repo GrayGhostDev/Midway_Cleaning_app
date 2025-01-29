@@ -45,7 +45,7 @@ export function Sidebar() {
         <Link href="/" className="flex items-center space-x-2">
           <div className="relative h-6 w-6">
             <Image
-              src="/midway-logo.png"
+              src="/midway-logo.jpg"
               alt="Midway Cleaning Co."
               width={150}
               height={40}

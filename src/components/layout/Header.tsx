@@ -23,7 +23,7 @@ export default function Header({ user }: HeaderProps) {
       <div className="flex h-16 items-center justify-between px-8">
         <div className="flex items-center gap-4">
           <Image
-            src="/midway-logo.png"
+            src="/midway-logo.jpg"
             alt="Midway Cleaning Co"
             width={40}
             height={40}
