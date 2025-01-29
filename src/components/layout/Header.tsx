@@ -1,4 +1,4 @@
-import { User } from '@clerk/nextjs/dist/types/server';
+import type { User } from '@clerk/backend';
 import { SignOutButton } from '@clerk/nextjs';
 import {
   DropdownMenu,
