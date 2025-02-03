@@ -103,7 +103,7 @@
     "typescript": "^5.3.3",
     "@eslint/config-array": "0.19.1",
     "@eslint/object-schema": "2.1.5",
-    "glob": "^10.3.10",
+    "glob": "^11.0.1",
     "rimraf": "^5.0.5"
   },
   "prisma": {
