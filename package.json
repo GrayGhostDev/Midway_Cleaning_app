@@ -81,7 +81,7 @@
     "lru-cache": "^10.2.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^14.2.1",
+    "@testing-library/react": "^16.2.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.57",
