@@ -76,7 +76,7 @@
     "stripe": "^14.17.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4",
+    "zod": "^4.0.17",
     "zustand": "^4.5.1",
     "lru-cache": "^10.2.0"
   },
