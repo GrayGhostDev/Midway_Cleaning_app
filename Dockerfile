@@ -1,5 +1,5 @@
 # Base stage for shared dependencies
-FROM node:18-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
