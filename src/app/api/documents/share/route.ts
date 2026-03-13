@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { resend } from '@/lib/resend';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,12 +34,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a share record
-    const share = await prisma.documentShare.create({
+    // Update the document's sharedWith array
+    await prisma.document.update({
+      where: { id: documentId },
       data: {
-        documentId,
-        sharedByUserId: userId,
-        sharedWithEmail: email,
+        sharedWith: {
+          push: email,
+        },
       },
     });
 
@@ -51,13 +52,13 @@ export async function POST(request: Request) {
       html: `
         <h1>A document has been shared with you</h1>
         <p>Hello,</p>
-        <p>${userId} has shared a document with you: ${document.name}</p>
+        <p>A document has been shared with you: ${document.name}</p>
         <p>You can access the document by logging into your Midway Cleaning account.</p>
         <p>Best regards,<br>Midway Cleaning Team</p>
       `,
     });
 
-    return NextResponse.json(share);
+    return NextResponse.json({ success: true, documentId, sharedWith: email });
   } catch (error) {
     console.error('Share error:', error);
     return NextResponse.json(

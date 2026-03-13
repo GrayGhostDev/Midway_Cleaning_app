@@ -19,7 +19,8 @@ export interface CreateEmployeeDTO {
 
 export class EmployeeService {
   static async getAll(): Promise<Employee[]> {
-    return fetchAPI<Employee[]>('/employees');
+    // /api/users is the Clerk-backed employee store
+    return fetchAPI<Employee[]>('/users');
   }
 
   static async getById(id: string): Promise<Employee> {

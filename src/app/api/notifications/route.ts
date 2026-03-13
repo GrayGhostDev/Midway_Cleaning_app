@@ -1,19 +1,23 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
     const notifications = await prisma.notification.findMany({
-      where: { userEmail: session.user.email },
-      orderBy: { timestamp: 'desc' },
-      take: 50, // Limit to last 50 notifications
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     });
 
     return NextResponse.json(notifications);
@@ -25,22 +29,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
     const data = await request.json();
-    const { title, message, type } = data;
+    const { title, message } = data;
 
     const notification = await prisma.notification.create({
       data: {
-        userEmail: session.user.email,
+        userId: user.id,
         title,
         message,
-        type,
-        timestamp: new Date(),
-        read: false,
       },
     });
 

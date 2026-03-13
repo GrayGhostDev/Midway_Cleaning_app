@@ -8,6 +8,7 @@ interface Toast {
   description?: string;
   action?: React.ReactNode;
   duration?: number;
+  variant?: 'default' | 'destructive';
 }
 
 const TOAST_LIMIT = 1;

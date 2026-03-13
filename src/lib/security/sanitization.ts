@@ -1,45 +1,15 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import createDOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
 import { ApiError } from '@/lib/api/errors';
 
-const window = new JSDOM('').window;
-const DOMPurify = createDOMPurify(window);
-
-// Configure DOMPurify
-const purifyConfig = {
-  ALLOWED_TAGS: [
-    'b',
-    'i',
-    'em',
-    'strong',
-    'a',
-    'p',
-    'br',
-    'ul',
-    'ol',
-    'li',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-  ],
-  ALLOWED_ATTR: ['href', 'title', 'target'],
-  ALLOW_DATA_ATTR: false,
-  USE_PROFILES: { html: true },
-};
-
-// Sanitize HTML content
+// Sanitize HTML content -- strips all tags for safety (jsdom/dompurify not installed)
 export function sanitizeHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, purifyConfig);
+  return dirty.replace(/<[^>]*>/g, '');
 }
 
 // Sanitize plain text (remove HTML and scripts)
 export function sanitizeText(text: string): string {
-  return DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
+  return text.replace(/<[^>]*>/g, '');
 }
 
 // Sanitize URL
@@ -73,26 +43,26 @@ export function sanitizeFileName(fileName: string): string {
 // Sanitize query parameters
 export function sanitizeQueryParams(params: URLSearchParams): URLSearchParams {
   const sanitized = new URLSearchParams();
-  
+
   params.forEach((value, key) => {
     sanitized.append(key, sanitizeText(value));
   });
-  
+
   return sanitized;
 }
 
 // Request body sanitization middleware
-export async function sanitizeRequestBody(req: NextRequest): Promise<any> {
+export async function sanitizeRequestBody(req: NextRequest): Promise<unknown> {
   try {
     const body = await req.json();
     return sanitizeObject(body);
-  } catch (error) {
+  } catch {
     throw new ApiError(400, 'Invalid request body');
   }
 }
 
 // Recursively sanitize object values
-export function sanitizeObject(obj: any): any {
+export function sanitizeObject(obj: unknown): unknown {
   if (typeof obj !== 'object' || obj === null) {
     return typeof obj === 'string' ? sanitizeText(obj) : obj;
   }
@@ -101,9 +71,9 @@ export function sanitizeObject(obj: any): any {
     return obj.map(item => sanitizeObject(item));
   }
 
-  const sanitized: Record<string, any> = {};
-  
-  for (const [key, value] of Object.entries(obj)) {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (typeof value === 'string') {
       if (key.toLowerCase().includes('html')) {
         sanitized[key] = sanitizeHtml(value);
@@ -133,7 +103,7 @@ export function escapeSqlIdentifier(identifier: string): string {
 export function validateFileUpload(
   file: File,
   options: {
-    maxSize?: number; // in bytes
+    maxSize?: number;
     allowedTypes?: string[];
   } = {}
 ): void {
@@ -147,7 +117,6 @@ export function validateFileUpload(
     throw new ApiError(400, 'File type not allowed');
   }
 
-  // Sanitize file name
   const fileName = sanitizeFileName(file.name);
   if (fileName !== file.name) {
     throw new ApiError(400, 'Invalid file name');

@@ -13,7 +13,7 @@ interface MaintenanceTask {
   assignedTo: string;
 }
 
-const columns = [
+const columns: { header: string; accessorKey: keyof MaintenanceTask; cell?: (props: { row: { original: MaintenanceTask } }) => React.ReactNode }[] = [
   {
     header: 'Equipment',
     accessorKey: 'equipmentName',
@@ -29,19 +29,22 @@ const columns = [
   {
     header: 'Status',
     accessorKey: 'status',
-    cell: (value: string) => (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          value === 'completed'
-            ? 'bg-green-100 text-green-800'
-            : value === 'overdue'
-            ? 'bg-red-100 text-red-800'
-            : 'bg-yellow-100 text-yellow-800'
-        }`}
-      >
-        {value}
-      </span>
-    ),
+    cell: ({ row }: { row: { original: MaintenanceTask } }) => {
+      const value = row.original.status;
+      return (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            value === 'completed'
+              ? 'bg-green-100 text-green-800'
+              : value === 'overdue'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-yellow-100 text-yellow-800'
+          }`}
+        >
+          {value}
+        </span>
+      );
+    },
   },
   {
     header: 'Assigned To',

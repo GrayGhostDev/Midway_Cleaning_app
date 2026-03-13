@@ -1,110 +1,53 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const schedule = await prisma.workSchedule.findUnique({
-      where: { id: params.id },
+    const { id } = await params;
+
+    const shift = await prisma.shift.findUnique({
+      where: { id },
       include: {
-        employee: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        location: true,
-        workTasks: {
-          include: {
-            service: true,
-            assignedTo: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
+        user: { select: { name: true, email: true } },
       },
     });
 
-    if (!schedule) {
+    if (!shift) {
       return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
     }
 
-    return NextResponse.json(schedule);
+    return NextResponse.json(shift);
   } catch (error) {
     console.error('Error fetching schedule:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { status, notes, startTime, endTime } = body;
 
-    // If changing times, check for conflicts
-    if (startTime || endTime) {
-      const currentSchedule = await prisma.workSchedule.findUnique({
-        where: { id: params.id },
-      });
-
-      if (!currentSchedule) {
-        return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
-      }
-
-      const conflicts = await prisma.workSchedule.findMany({
-        where: {
-          employeeId: currentSchedule.employeeId,
-          id: { not: params.id },
-          OR: [
-            {
-              AND: [
-                { startTime: { lte: startTime ? new Date(startTime) : currentSchedule.startTime } },
-                { endTime: { gt: startTime ? new Date(startTime) : currentSchedule.startTime } },
-              ],
-            },
-            {
-              AND: [
-                { startTime: { lt: endTime ? new Date(endTime) : currentSchedule.endTime } },
-                { endTime: { gte: endTime ? new Date(endTime) : currentSchedule.endTime } },
-              ],
-            },
-          ],
-        },
-      });
-
-      if (conflicts.length > 0) {
-        return NextResponse.json(
-          { error: 'Schedule conflict detected' },
-          { status: 400 }
-        );
-      }
-    }
-
-    const schedule = await prisma.workSchedule.update({
-      where: { id: params.id },
+    const shift = await prisma.shift.update({
+      where: { id },
       data: {
         status,
         notes,
@@ -112,79 +55,47 @@ export async function PUT(
         endTime: endTime ? new Date(endTime) : undefined,
       },
       include: {
-        employee: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        location: true,
-        workTasks: {
-          include: {
-            service: true,
-            assignedTo: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
+        user: { select: { name: true, email: true } },
       },
     });
 
-    return NextResponse.json(schedule);
+    return NextResponse.json(shift);
   } catch (error) {
     console.error('Error updating schedule:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if schedule exists and can be deleted
-    const schedule = await prisma.workSchedule.findUnique({
-      where: { id: params.id },
-    });
+    const { id } = await params;
 
-    if (!schedule) {
+    const shift = await prisma.shift.findUnique({ where: { id } });
+
+    if (!shift) {
       return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
     }
 
-    if (schedule.status === 'IN_PROGRESS' || schedule.status === 'COMPLETED') {
+    if (shift.status === 'IN_PROGRESS' || shift.status === 'COMPLETED') {
       return NextResponse.json(
         { error: 'Cannot delete schedule that is in progress or completed' },
         { status: 400 }
       );
     }
 
-    // Delete schedule and related tasks
-    await prisma.$transaction([
-      prisma.workTask.deleteMany({
-        where: { scheduleId: params.id },
-      }),
-      prisma.workSchedule.delete({
-        where: { id: params.id },
-      }),
-    ]);
+    await prisma.shift.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
     console.error('Error deleting schedule:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAnalytics, generateReport } from '@/lib/analytics';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { rateLimit } from '@/lib/rate-limit';
 
 // Input validation schema
@@ -15,7 +15,7 @@ const analyticsSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     // Authentication check
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

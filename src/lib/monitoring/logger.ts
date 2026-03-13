@@ -1,30 +1,7 @@
-import pino from 'pino';
-import { createWriteStream } from 'pino-sentry';
+// Monitoring logger stub -- pino and pino-sentry are not installed.
+// Uses console-based logging as a stand-in.
+
 import { captureException } from './sentry';
-
-const streams = [
-  { stream: process.stdout },
-  createWriteStream({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN!,
-    level: 'error',
-  }),
-];
-
-const logger = pino(
-  {
-    level: process.env.LOG_LEVEL || 'info',
-    formatters: {
-      level: (label) => {
-        return { level: label };
-      },
-    },
-    redact: {
-      paths: ['password', 'email', 'creditCard', 'ssn'],
-      remove: true,
-    },
-  },
-  pino.multistream(streams)
-);
 
 export class Logger {
   private context: string;
@@ -37,36 +14,33 @@ export class Logger {
     return `[${this.context}] ${message}`;
   }
 
-  info(message: string, data?: Record<string, any>) {
-    logger.info({ ...data }, this.formatMessage(message));
+  info(message: string, data?: Record<string, unknown>) {
+    console.info(this.formatMessage(message), data ?? '');
   }
 
-  error(message: string, error?: Error, data?: Record<string, any>) {
+  error(message: string, error?: Error, data?: Record<string, unknown>) {
     if (error) {
       captureException(error, data);
     }
-    logger.error({ error, ...data }, this.formatMessage(message));
+    console.error(this.formatMessage(message), error, data ?? '');
   }
 
-  warn(message: string, data?: Record<string, any>) {
-    logger.warn({ ...data }, this.formatMessage(message));
+  warn(message: string, data?: Record<string, unknown>) {
+    console.warn(this.formatMessage(message), data ?? '');
   }
 
-  debug(message: string, data?: Record<string, any>) {
-    logger.debug({ ...data }, this.formatMessage(message));
+  debug(message: string, data?: Record<string, unknown>) {
+    console.debug(this.formatMessage(message), data ?? '');
   }
 
-  audit(action: string, user: string, details: Record<string, any>) {
-    logger.info(
-      {
-        type: 'AUDIT',
-        action,
-        user,
-        ...details,
-        timestamp: new Date().toISOString(),
-      },
-      this.formatMessage('Audit Log')
-    );
+  audit(action: string, user: string, details: Record<string, unknown>) {
+    console.info(this.formatMessage('Audit Log'), {
+      type: 'AUDIT',
+      action,
+      user,
+      ...details,
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 

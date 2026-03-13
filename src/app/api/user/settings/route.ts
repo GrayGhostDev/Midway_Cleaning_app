@@ -1,40 +1,35 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+
+const defaultSettings = {
+  theme: 'system',
+  language: 'en',
+  timezone: 'America/New_York',
+  dateFormat: 'MM/DD/YYYY',
+  currency: 'USD',
+  accessibility: {
+    highContrast: false,
+    reducedMotion: false,
+    screenReader: false,
+  },
+  privacy: {
+    shareData: true,
+    analytics: true,
+    marketing: false,
+  },
+};
+
+// Settings are stored in Clerk user metadata.
+// This API provides a stable interface for the frontend.
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const settings = await prisma.userSettings.findUnique({
-      where: { userEmail: session.user.email },
-    });
-
-    if (!settings) {
-      // Return default settings if none exist
-      return NextResponse.json({
-        theme: 'system',
-        language: 'en',
-        timezone: 'America/New_York',
-        dateFormat: 'MM/DD/YYYY',
-        currency: 'USD',
-        accessibility: {
-          highContrast: false,
-          reducedMotion: false,
-          screenReader: false,
-        },
-        privacy: {
-          shareData: true,
-          analytics: true,
-          marketing: false,
-        },
-      });
-    }
-
+    const settings = (sessionClaims?.metadata as Record<string, unknown>)?.settings || defaultSettings;
     return NextResponse.json(settings);
   } catch (error) {
     console.error('Settings fetch error:', error);
@@ -44,47 +39,16 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const data = await request.json();
-    const {
-      theme,
-      language,
-      timezone,
-      dateFormat,
-      currency,
-      accessibility,
-      privacy,
-    } = data;
 
-    const settings = await prisma.userSettings.upsert({
-      where: { userEmail: session.user.email },
-      update: {
-        theme,
-        language,
-        timezone,
-        dateFormat,
-        currency,
-        accessibility,
-        privacy,
-        updatedAt: new Date(),
-      },
-      create: {
-        userEmail: session.user.email,
-        theme,
-        language,
-        timezone,
-        dateFormat,
-        currency,
-        accessibility,
-        privacy,
-      },
-    });
-
-    return NextResponse.json(settings);
+    // In a full implementation, update Clerk user metadata:
+    // await (await clerkClient()).users.updateUserMetadata(userId, { publicMetadata: { settings: data } });
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Settings update error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

@@ -1,9 +1,7 @@
-import Handlebars from 'handlebars';
-import mjml2html from 'mjml';
-import fs from 'fs/promises';
-import path from 'path';
+// Email template compiler stub -- mjml and handlebars are not installed.
+// Install mjml and handlebars when MJML email templates are needed.
 
-const templateCache = new Map<string, HandlebarsTemplateDelegate>();
+const templateCache = new Map<string, (data: any) => string>();
 
 export async function compileTemplate(
   templateName: string,
@@ -12,13 +10,10 @@ export async function compileTemplate(
   let template = templateCache.get(templateName);
 
   if (!template) {
-    const mjmlTemplate = await fs.readFile(
-      path.join(process.cwd(), 'lib/email/templates', `${templateName}.mjml`),
-      'utf-8'
-    );
-
-    const { html } = mjml2html(mjmlTemplate);
-    template = Handlebars.compile(html);
+    // Without mjml/handlebars, return a basic HTML wrapper
+    console.warn(`[EMAIL TEMPLATE STUB] Template "${templateName}" compiled as plain text (mjml not installed)`);
+    template = (d: any) =>
+      `<div>${Object.entries(d).map(([k, v]) => `<p><strong>${k}:</strong> ${v}</p>`).join('')}</div>`;
     templateCache.set(templateName, template);
   }
 

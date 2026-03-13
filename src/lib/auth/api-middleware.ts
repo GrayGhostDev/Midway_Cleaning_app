@@ -1,97 +1,27 @@
-import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import type { NextRequest } from 'next/server';
-import { Role, can } from './rbac';
-import { AuthError } from '@/hooks/use-auth';
+// Re-export from the unified auth module for backwards compatibility.
+// New code should import directly from '@/lib/auth'.
+export { withApiAuth as withAuth, type Role, can, AuthError } from '@/lib/auth';
 
-interface AuthenticatedRequest extends NextRequest {
-  user?: {
-    id: string;
-    email: string;
-    role: Role;
-  };
-}
-
-export async function withAuth(
-  handler: (req: AuthenticatedRequest) => Promise<NextResponse>,
-  options?: {
-    requiredRoles?: Role[];
-    requiredPermissions?: { action: string; subject: string }[];
-  }
-) {
-  return async function authMiddleware(req: NextRequest) {
-    try {
-      const token = await getToken({ req });
-
-      if (!token) {
-        throw new AuthError('Unauthorized', 'UNAUTHORIZED');
-      }
-
-      // Add user information to the request
-      const authenticatedReq = req as AuthenticatedRequest;
-      authenticatedReq.user = {
-        id: token.sub!,
-        email: token.email as string,
-        role: token.role as Role,
-      };
-
-      // Check role-based access
-      if (options?.requiredRoles && !options.requiredRoles.includes(token.role as Role)) {
-        throw new AuthError('Forbidden: Insufficient role', 'FORBIDDEN');
-      }
-
-      // Check permissions
-      if (options?.requiredPermissions) {
-        const hasPermissions = options.requiredPermissions.every(({ action, subject }) =>
-          can(token.role as Role, action, subject)
-        );
-
-        if (!hasPermissions) {
-          throw new AuthError('Forbidden: Insufficient permissions', 'FORBIDDEN');
-        }
-      }
-
-      return handler(authenticatedReq);
-    } catch (error) {
-      if (error instanceof AuthError) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: error.code === 'UNAUTHORIZED' ? 401 : 403 }
-        );
-      }
-
-      console.error('Auth middleware error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
-    }
-  };
-}
-
-// Helper function to protect API routes with specific permissions
 export function withPermission(action: string, subject: string) {
-  return function (handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
-    return withAuth(handler, {
-      requiredPermissions: [{ action, subject }],
-    });
+  return function (handler: (req: Request) => Promise<Response>) {
+    return async (req: Request) => {
+      const { requireAuth, can: canDo } = await import('@/lib/auth');
+      const user = await requireAuth();
+      if (!canDo(user.role, action, subject)) {
+        const { NextResponse } = await import('next/server');
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return handler(req);
+    };
   };
 }
 
-// Helper function to protect API routes with specific roles
-export function withRole(...roles: Role[]) {
-  return function (handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
-    return withAuth(handler, {
-      requiredRoles: roles,
-    });
+export function withRole(...roles: import('@/lib/auth').Role[]) {
+  return function (handler: (req: Request) => Promise<Response>) {
+    return async (req: Request) => {
+      const { requireRole } = await import('@/lib/auth');
+      await requireRole(...roles);
+      return handler(req);
+    };
   };
 }
-
-// Example usage:
-// export const GET = withPermission('read', 'tasks')(async function handler(req) {
-//   // Your handler code here
-// });
-//
-// export const POST = withRole('ADMIN', 'MANAGER')(async function handler(req) {
-//   // Your handler code here
-// });

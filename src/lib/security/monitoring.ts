@@ -3,10 +3,18 @@ import { Redis } from '@upstash/redis';
 import { logger } from '@/lib/api/logger';
 import { ApiError } from '@/lib/api/errors';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (!_redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    _redis = new Redis({ url, token });
+  }
+  return _redis;
+}
 
 interface SecurityEvent {
   type: string;
@@ -29,6 +37,12 @@ export class SecurityMonitor {
       timestamp: new Date().toISOString(),
     };
 
+    // Log to application logger regardless of Redis availability
+    logger.warn('Security event detected', securityEvent);
+
+    const redis = getRedis();
+    if (!redis) return;
+
     // Log to Redis for real-time monitoring
     await redis.lpush(
       this.EVENT_KEY,
@@ -37,9 +51,6 @@ export class SecurityMonitor {
 
     // Trim the list to keep only recent events
     await redis.ltrim(this.EVENT_KEY, 0, 999);
-
-    // Log to application logger
-    logger.warn('Security event detected', securityEvent);
 
     // Check if we need to trigger alerts
     await this.checkAlertThreshold(securityEvent);
@@ -60,6 +71,9 @@ export class SecurityMonitor {
     type: string,
     windowSeconds: number
   ): Promise<SecurityEvent[]> {
+    const redis = getRedis();
+    if (!redis) return [];
+
     const events = await redis.lrange(this.EVENT_KEY, 0, -1);
     const now = Date.now();
 
@@ -93,6 +107,9 @@ export class SecurityMonitor {
 
   // Monitor suspicious IP addresses
   static async monitorIp(ip: string): Promise<void> {
+    const redis = getRedis();
+    if (!redis) return;
+
     const key = `suspicious_ip:${ip}`;
     const count = await redis.incr(key);
 
@@ -116,6 +133,9 @@ export class SecurityMonitor {
     ip: string,
     userId?: string
   ): Promise<void> {
+    const redis = getRedis();
+    if (!redis) return;
+
     const key = `auth_failures:${ip}`;
     const count = await redis.incr(key);
 
@@ -140,7 +160,10 @@ export class SecurityMonitor {
     req: NextRequest,
     res: NextResponse
   ): Promise<void> {
-    const ip = req.ip ?? 'unknown';
+    const redis = getRedis();
+    if (!redis) return;
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     const method = req.method;
     const path = new URL(req.url).pathname;
     const status = res.status;
@@ -172,7 +195,7 @@ export async function securityMonitoring(
   req: NextRequest,
   res: NextResponse
 ): Promise<void> {
-  const ip = req.ip ?? 'unknown';
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 
   // Monitor IP activity
   await SecurityMonitor.monitorIp(ip);

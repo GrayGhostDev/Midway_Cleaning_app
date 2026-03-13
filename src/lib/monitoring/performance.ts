@@ -63,7 +63,7 @@ export const measurePerformance = async <T>(
   name: string,
   operation: () => Promise<T>
 ): Promise<T> => {
-  return monitorPerformance(name, operation);
+  return monitorPerformance(name, operation) as Promise<T>;
 };
 
 export const reportWebVitals = ({

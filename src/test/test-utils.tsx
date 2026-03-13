@@ -1,7 +1,7 @@
 import React from 'react';
 import { render as rtlRender } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WebSocketProvider } from '@/contexts/websocket-context';
+// WebSocketProvider removed — not currently implemented
 
 // Mock WebSocket class
 class MockWebSocket {
@@ -48,9 +48,7 @@ function render(
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <WebSocketProvider>
-          {children}
-        </WebSocketProvider>
+        {children}
       </QueryClientProvider>
     );
   }

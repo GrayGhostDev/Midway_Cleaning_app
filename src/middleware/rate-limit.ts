@@ -3,10 +3,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getRequestIp } from '../utils/request';
 
-const redis = new Redis({
-  url: process.env.REDIS_URL!,
-  token: process.env.REDIS_TOKEN!,
-});
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (!_redis) {
+    const url = process.env.REDIS_URL;
+    const token = process.env.REDIS_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    _redis = new Redis({ url, token });
+  }
+  return _redis;
+}
 
 interface RateLimitConfig {
   window: number;  // Time window in milliseconds
@@ -22,9 +30,15 @@ export async function rateLimit(
   request: NextRequest,
   config: RateLimitConfig = defaultConfig
 ) {
+  const redis = getRedis();
+  if (!redis) {
+    // Redis unavailable — pass through without rate limiting
+    return NextResponse.next();
+  }
+
   const ip = getRequestIp(request);
   const key = `rate-limit:${ip}`;
-  
+
   const current = await redis.incr(key);
   if (current === 1) {
     await redis.expire(key, config.window / 1000);
@@ -37,7 +51,7 @@ export async function rateLimit(
   });
 
   if (current > config.max) {
-    return new NextResponse('Too Many Requests', { 
+    return new NextResponse('Too Many Requests', {
       status: 429,
       headers
     });

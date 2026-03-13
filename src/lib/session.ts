@@ -1,6 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth';
+import { auth } from '@clerk/nextjs/server';
 
 const redis = Redis.fromEnv();
 const SESSION_PREFIX = 'session:';
@@ -40,7 +39,7 @@ export async function getActiveSessions(userId: string): Promise<SessionData[]> 
   for (const key of keys) {
     const data = await redis.get(key);
     if (data) {
-      const session = JSON.parse(data) as SessionData;
+      const session = JSON.parse(data as string) as SessionData;
       if (session.isActive) {
         sessions.push(session);
       }
@@ -54,7 +53,7 @@ export async function invalidateSession(sessionId: string): Promise<boolean> {
   const session = await redis.get(sessionId);
   if (!session) return false;
 
-  const sessionData = JSON.parse(session) as SessionData;
+  const sessionData = JSON.parse(session as string) as SessionData;
   sessionData.isActive = false;
   await redis.setex(sessionId, SESSION_EXPIRY, JSON.stringify(sessionData));
   return true;
@@ -68,7 +67,7 @@ export async function invalidateAllSessions(userId: string): Promise<number> {
   for (const key of keys) {
     const data = await redis.get(key);
     if (data) {
-      const session = JSON.parse(data) as SessionData;
+      const session = JSON.parse(data as string) as SessionData;
       session.isActive = false;
       await redis.setex(key, SESSION_EXPIRY, JSON.stringify(session));
       count++;
@@ -82,7 +81,7 @@ export async function updateSessionActivity(sessionId: string): Promise<boolean>
   const session = await redis.get(sessionId);
   if (!session) return false;
 
-  const sessionData = JSON.parse(session) as SessionData;
+  const sessionData = JSON.parse(session as string) as SessionData;
   sessionData.lastActive = Date.now();
   await redis.setex(sessionId, SESSION_EXPIRY, JSON.stringify(sessionData));
   return true;
@@ -92,14 +91,14 @@ export async function validateSession(sessionId: string): Promise<boolean> {
   const session = await redis.get(sessionId);
   if (!session) return false;
 
-  const sessionData = JSON.parse(session) as SessionData;
+  const sessionData = JSON.parse(session as string) as SessionData;
   return sessionData.isActive;
 }
 
 export async function getCurrentSession() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return null;
+  const { userId } = await auth();
+  if (!userId) return null;
 
-  const activeSessions = await getActiveSessions(session.user.id);
+  const activeSessions = await getActiveSessions(userId);
   return activeSessions[0] || null;
 }

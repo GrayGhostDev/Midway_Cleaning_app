@@ -1,25 +1,32 @@
-import pino from 'pino';
+// Console-based logger stub -- replaces pino dependency.
+// Install pino + pino-pretty for structured logging when ready.
 
-const pinoConfig = {
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      ignore: 'pid,hostname',
-      translateTime: 'UTC:yyyy-mm-dd HH:MM:ss.l o',
-    },
+const level = process.env.NODE_ENV === 'production' ? 'info' : 'debug';
+
+const LEVELS: Record<string, number> = { debug: 0, info: 1, warn: 2, error: 3 };
+const currentLevel = LEVELS[level] ?? 1;
+
+function shouldLog(msgLevel: string) {
+  return (LEVELS[msgLevel] ?? 0) >= currentLevel;
+}
+
+export const logger = {
+  info(msgOrObj: any, msg?: any) {
+    if (shouldLog('info')) console.info(msg ?? '', msgOrObj);
   },
-  base: {
-    env: process.env.NODE_ENV,
+  error(msgOrObj: any, msg?: any) {
+    if (shouldLog('error')) console.error(msg ?? '', msgOrObj);
   },
-  redact: {
-    paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
-    remove: true,
+  warn(msgOrObj: any, msg?: any) {
+    if (shouldLog('warn')) console.warn(msg ?? '', msgOrObj);
+  },
+  debug(msgOrObj: any, msg?: any) {
+    if (shouldLog('debug')) console.debug(msg ?? '', msgOrObj);
+  },
+  child(_context: Record<string, any>) {
+    return logger;
   },
 };
-
-export const logger = pino(pinoConfig);
 
 // Request context logger
 export class RequestLogger {
@@ -39,11 +46,7 @@ export class RequestLogger {
     logger.error(
       {
         requestId: this.requestId,
-        error: {
-          message: error?.message,
-          stack: error?.stack,
-          ...error,
-        },
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
       },
       message
     );
@@ -61,8 +64,6 @@ export class RequestLogger {
     this.info('Incoming request', {
       method: req.method,
       url: req.url,
-      headers: req.headers,
-      query: req.query,
     });
   }
 
@@ -83,7 +84,7 @@ export const createLogger = (context: Record<string, any>) => {
 // Utility function to safely stringify objects for logging
 export const safeStringify = (obj: any): string => {
   const cache = new Set();
-  return JSON.stringify(obj, (key, value) => {
+  return JSON.stringify(obj, (_key, value) => {
     if (typeof value === 'object' && value !== null) {
       if (cache.has(value)) {
         return '[Circular]';

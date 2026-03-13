@@ -12,7 +12,7 @@ interface MaintenanceRecord {
   notes: string;
 }
 
-const columns = [
+const columns: { header: string; accessorKey: keyof MaintenanceRecord; cell?: (props: { row: { original: MaintenanceRecord } }) => React.ReactNode }[] = [
   {
     header: 'Equipment',
     accessorKey: 'equipmentName',
@@ -32,7 +32,7 @@ const columns = [
   {
     header: 'Cost',
     accessorKey: 'cost',
-    cell: (value: number) => `$${value.toFixed(2)}`,
+    cell: ({ row }: { row: { original: MaintenanceRecord } }) => `$${row.original.cost.toFixed(2)}`,
   },
   {
     header: 'Notes',
@@ -41,24 +41,26 @@ const columns = [
 ];
 
 interface MaintenanceHistoryProps {
-  records: MaintenanceRecord[];
-  costTrend: {
+  equipmentId?: string;
+  records?: MaintenanceRecord[];
+  costTrend?: {
     date: string;
     value: number;
   }[];
-  maintenancesByEquipment: {
+  maintenancesByEquipment?: {
     equipment: string;
     count: number;
   }[];
 }
 
 export function MaintenanceHistory({
-  records,
-  costTrend,
-  maintenancesByEquipment,
+  equipmentId,
+  records = [],
+  costTrend = [],
+  maintenancesByEquipment = [],
 }: MaintenanceHistoryProps) {
   const totalCost = records.reduce((sum, record) => sum + record.cost, 0);
-  const averageCost = totalCost / records.length;
+  const averageCost = records.length > 0 ? totalCost / records.length : 0;
 
   return (
     <div className="space-y-4">

@@ -42,7 +42,7 @@ export function validate(config: ValidationConfig) {
         return new NextResponse(
           JSON.stringify({
             error: 'Validation Error',
-            details: fromZodError(error).message,
+            details: fromZodError(error as any).message,
           }),
           {
             status: 400,

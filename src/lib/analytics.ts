@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma';
-import { format } from 'date-fns';
+import { createServerClient } from '@/lib/supabase';
+import { format as formatDate } from 'date-fns';
 
 export type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type MetricType = 'revenue' | 'appointments' | 'customers' | 'services';
@@ -13,131 +13,80 @@ interface AnalyticsData {
 }
 
 export async function getAnalytics(timeRange: TimeRange, startDate: Date, endDate: Date) {
-  // Get revenue data
-  const revenue = await prisma.payment.groupBy({
-    by: ['createdAt'],
-    _sum: {
-      amount: true,
-    },
-    where: {
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-      status: 'completed',
-    },
-  });
+  const supabase = createServerClient();
+  const start = startDate.toISOString();
+  const end = endDate.toISOString();
 
-  // Get appointment data
-  const appointments = await prisma.appointment.groupBy({
-    by: ['createdAt'],
-    _count: {
-      id: true,
-    },
-    where: {
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-  });
+  const [
+    { data: revenueData },
+    { data: appointmentData },
+    { data: customerData },
+    { data: serviceData },
+  ] = await Promise.all([
+    supabase
+      .from('Payment')
+      .select('createdAt, amount')
+      .gte('createdAt', start)
+      .lte('createdAt', end)
+      .eq('status', 'PAID'),
+    // Bookings map to appointments
+    supabase
+      .from('Booking')
+      .select('createdAt')
+      .gte('createdAt', start)
+      .lte('createdAt', end),
+    // Users (clients) map to customers
+    supabase
+      .from('User')
+      .select('createdAt')
+      .eq('role', 'CLIENT')
+      .gte('createdAt', start)
+      .lte('createdAt', end),
+    supabase
+      .from('Service')
+      .select('createdAt')
+      .gte('createdAt', start)
+      .lte('createdAt', end),
+  ]);
 
-  // Get customer data
-  const customers = await prisma.customer.groupBy({
-    by: ['createdAt'],
-    _count: {
-      id: true,
-    },
-    where: {
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-  });
-
-  // Get service data
-  const services = await prisma.service.groupBy({
-    by: ['createdAt'],
-    _count: {
-      id: true,
-    },
-    where: {
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-  });
-
-  // Combine and format data
   const analyticsData = new Map<string, AnalyticsData>();
 
-  // Process revenue
-  revenue.forEach((item) => {
-    const date = format(item.createdAt, 'yyyy-MM-dd');
+  const getOrCreate = (date: string, timestamp: Date): AnalyticsData => {
     if (!analyticsData.has(date)) {
-      analyticsData.set(date, {
-        revenue: 0,
-        appointments: 0,
-        customers: 0,
-        services: 0,
-        timestamp: item.createdAt,
-      });
+      analyticsData.set(date, { revenue: 0, appointments: 0, customers: 0, services: 0, timestamp });
     }
-    const data = analyticsData.get(date)!;
-    data.revenue += item._sum.amount || 0;
+    return analyticsData.get(date)!;
+  };
+
+  (revenueData ?? []).forEach((item: any) => {
+    const ts = new Date(item.createdAt);
+    const date = formatDate(ts, 'yyyy-MM-dd');
+    const data = getOrCreate(date, ts);
+    data.revenue += parseFloat(item.amount) || 0;
   });
 
-  // Process appointments
-  appointments.forEach((item) => {
-    const date = format(item.createdAt, 'yyyy-MM-dd');
-    if (!analyticsData.has(date)) {
-      analyticsData.set(date, {
-        revenue: 0,
-        appointments: 0,
-        customers: 0,
-        services: 0,
-        timestamp: item.createdAt,
-      });
-    }
-    const data = analyticsData.get(date)!;
-    data.appointments += item._count.id;
+  (appointmentData ?? []).forEach((item: any) => {
+    const ts = new Date(item.createdAt);
+    const date = formatDate(ts, 'yyyy-MM-dd');
+    const data = getOrCreate(date, ts);
+    data.appointments += 1;
   });
 
-  // Process customers
-  customers.forEach((item) => {
-    const date = format(item.createdAt, 'yyyy-MM-dd');
-    if (!analyticsData.has(date)) {
-      analyticsData.set(date, {
-        revenue: 0,
-        appointments: 0,
-        customers: 0,
-        services: 0,
-        timestamp: item.createdAt,
-      });
-    }
-    const data = analyticsData.get(date)!;
-    data.customers += item._count.id;
+  (customerData ?? []).forEach((item: any) => {
+    const ts = new Date(item.createdAt);
+    const date = formatDate(ts, 'yyyy-MM-dd');
+    const data = getOrCreate(date, ts);
+    data.customers += 1;
   });
 
-  // Process services
-  services.forEach((item) => {
-    const date = format(item.createdAt, 'yyyy-MM-dd');
-    if (!analyticsData.has(date)) {
-      analyticsData.set(date, {
-        revenue: 0,
-        appointments: 0,
-        customers: 0,
-        services: 0,
-        timestamp: item.createdAt,
-      });
-    }
-    const data = analyticsData.get(date)!;
-    data.services += item._count.id;
+  (serviceData ?? []).forEach((item: any) => {
+    const ts = new Date(item.createdAt);
+    const date = formatDate(ts, 'yyyy-MM-dd');
+    const data = getOrCreate(date, ts);
+    data.services += 1;
   });
 
-  return Array.from(analyticsData.values()).sort((a, b) => 
+  return Array.from(analyticsData.values()).sort((a, b) =>
     a.timestamp.getTime() - b.timestamp.getTime()
   );
 }
@@ -170,7 +119,7 @@ async function generatePDFReport(data: AnalyticsData[]) {
   const table = {
     headers: ['Date', 'Revenue', 'Appointments', 'Customers', 'Services'],
     rows: data.map(item => [
-      format(item.timestamp, 'yyyy-MM-dd'),
+      formatDate(item.timestamp, 'yyyy-MM-dd'),
       new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.revenue),
       item.appointments.toString(),
       item.customers.toString(),
@@ -206,7 +155,7 @@ async function generateExcelReport(data: AnalyticsData[]) {
   // Add data
   data.forEach(item => {
     worksheet.addRow({
-      date: format(item.timestamp, 'yyyy-MM-dd'),
+      date: formatDate(item.timestamp, 'yyyy-MM-dd'),
       revenue: item.revenue,
       appointments: item.appointments,
       customers: item.customers,
@@ -225,7 +174,7 @@ async function generateCSVReport(data: AnalyticsData[]) {
   const rows = [
     ['Date', 'Revenue', 'Appointments', 'Customers', 'Services'],
     ...data.map(item => [
-      format(item.timestamp, 'yyyy-MM-dd'),
+      formatDate(item.timestamp, 'yyyy-MM-dd'),
       item.revenue,
       item.appointments,
       item.customers,

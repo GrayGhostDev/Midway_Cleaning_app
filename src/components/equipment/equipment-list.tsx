@@ -13,7 +13,7 @@ interface Equipment {
   lastMaintenance: string;
 }
 
-const columns = [
+const columns: { header: string; accessorKey: keyof Equipment; cell?: (props: { row: { original: Equipment } }) => React.ReactNode }[] = [
   {
     header: 'Name',
     accessorKey: 'name',
@@ -25,7 +25,7 @@ const columns = [
   {
     header: 'Status',
     accessorKey: 'status',
-    cell: ({ row }) => {
+    cell: ({ row }: { row: { original: Equipment } }) => {
       const status = row.original.status;
       return (
         <span
@@ -52,8 +52,9 @@ const columns = [
   },
 ];
 
-export function EquipmentList() {
+export function EquipmentList({ searchQuery }: { searchQuery?: string }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const effectiveSearch = searchQuery ?? searchTerm;
   const [equipment] = useState<Equipment[]>([
     {
       id: '1',
@@ -80,7 +81,7 @@ export function EquipmentList() {
   };
 
   const filteredEquipment = equipment.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    item.name.toLowerCase().includes(effectiveSearch.toLowerCase())
   );
 
   return (

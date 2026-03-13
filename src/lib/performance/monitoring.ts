@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger } from '@/lib/api/logger';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (!_redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    _redis = new Redis({ url, token });
+  }
+  return _redis;
+}
 
 interface PerformanceMetric {
   name: string;
@@ -32,6 +40,9 @@ export class PerformanceMonitor {
   // Record a generic performance metric
   static async recordMetric(metric: PerformanceMetric): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
+
       const key = `${this.METRIC_PREFIX}${metric.name}:${Date.now()}`;
       await redis.set(key, JSON.stringify(metric));
       await redis.expire(key, this.RETENTION_DAYS * 24 * 60 * 60);
@@ -46,6 +57,9 @@ export class PerformanceMonitor {
   // Record page load metrics
   static async recordPageLoad(metrics: PageLoadMetric): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
+
       const key = `${this.METRIC_PREFIX}pageload:${Date.now()}`;
       await redis.set(key, JSON.stringify(metrics));
       await redis.expire(key, this.RETENTION_DAYS * 24 * 60 * 60);
@@ -95,6 +109,9 @@ export class PerformanceMonitor {
     const dayKey = `${this.METRIC_PREFIX}${metric.name}:day:${timestamp.getUTCFullYear()}-${timestamp.getUTCMonth()}-${timestamp.getUTCDate()}`;
 
     try {
+      const redis = getRedis();
+      if (!redis) return;
+
       const pipeline = redis.pipeline();
 
       // Update hourly stats
@@ -120,6 +137,9 @@ export class PerformanceMonitor {
     from: Date,
     to: Date
   ): Promise<Array<{ timestamp: Date; avg: number; count: number }>> {
+    const redis = getRedis();
+    if (!redis) return [];
+
     const metrics: Array<{ timestamp: Date; avg: number; count: number }> = [];
     let current = new Date(from);
 

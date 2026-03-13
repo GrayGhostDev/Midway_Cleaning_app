@@ -1,4 +1,4 @@
-import type { User } from '@clerk/backend';
+import type { UserResource } from '@clerk/types';
 import { SignOutButton } from '@clerk/nextjs';
 import {
   DropdownMenu,
@@ -14,7 +14,7 @@ import { Button } from '../ui/button';
 import Image from 'next/image';
 
 interface HeaderProps {
-  user: User;
+  user: UserResource;
 }
 
 export default function Header({ user }: HeaderProps) {
@@ -23,11 +23,12 @@ export default function Header({ user }: HeaderProps) {
       <div className="flex h-16 items-center justify-between px-8">
         <div className="flex items-center gap-4">
           <Image
-            src="/midway-logo.jpg"
+            src="/midway-logo.svg"
             alt="Midway Cleaning Co"
             width={40}
             height={40}
             priority
+            unoptimized
           />
           <h2 className="text-lg font-semibold">Welcome back, {user.firstName}</h2>
         </div>

@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
 interface ServiceRecord {
   id: string
@@ -76,11 +76,11 @@ export function ServiceHistory() {
 
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Service History</Card.Title>
-        <Card.Description>Past cleaning services and their details</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Service History</CardTitle>
+        <CardDescription>Past cleaning services and their details</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-4">
           {serviceHistory.map((service) => (
             <div
@@ -110,7 +110,7 @@ export function ServiceHistory() {
             </div>
           ))}
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

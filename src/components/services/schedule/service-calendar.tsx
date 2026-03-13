@@ -1,17 +1,22 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
-export function ServiceCalendar() {
+interface ServiceCalendarProps {
+  selected?: Date;
+  onSelect?: (date: Date | undefined) => void;
+}
+
+export function ServiceCalendar({ selected, onSelect }: ServiceCalendarProps) {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Service Calendar</Card.Title>
-        <Card.Description>View service bookings calendar</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Service Calendar</CardTitle>
+        <CardDescription>View service bookings calendar</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Service calendar component coming soon
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

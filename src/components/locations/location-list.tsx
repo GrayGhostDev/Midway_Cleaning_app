@@ -15,7 +15,7 @@ interface Location {
   nextScheduled: string;
 }
 
-const columns = [
+const columns: { header: string; accessorKey: keyof Location; cell?: (props: { row: { original: Location } }) => React.ReactNode }[] = [
   {
     header: 'Name',
     accessorKey: 'name',
@@ -31,7 +31,7 @@ const columns = [
   {
     header: 'Size (sq ft)',
     accessorKey: 'size',
-    cell: (value: number) => value.toLocaleString(),
+    cell: ({ row }: { row: { original: Location } }) => row.original.size.toLocaleString(),
   },
   {
     header: 'Cleaning Frequency',
@@ -47,8 +47,9 @@ const columns = [
   },
 ];
 
-export function LocationList() {
+export function LocationList({ searchQuery }: { searchQuery?: string }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const effectiveSearch = searchQuery ?? searchTerm;
   const [locations] = useState<Location[]>([
     {
       id: '1',
@@ -79,7 +80,7 @@ export function LocationList() {
   };
 
   const filteredLocations = locations.filter((location) =>
-    location.name.toLowerCase().includes(searchTerm.toLowerCase())
+    location.name.toLowerCase().includes(effectiveSearch.toLowerCase())
   );
 
   const totalSize = locations.reduce((sum, location) => sum + location.size, 0);

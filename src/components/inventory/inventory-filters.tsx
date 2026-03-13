@@ -8,20 +8,20 @@ import {
 } from '@/components/ui/select';
 
 interface InventoryFiltersProps {
-  category: string;
-  stockStatus: string;
-  onCategoryChange: (value: string) => void;
-  onStockStatusChange: (value: string) => void;
-  onReset: () => void;
+  category?: string;
+  stockStatus?: string;
+  onCategoryChange?: (value: string) => void;
+  onStockStatusChange?: (value: string) => void;
+  onReset?: () => void;
 }
 
 export function InventoryFilters({
-  category,
-  stockStatus,
-  onCategoryChange,
-  onStockStatusChange,
-  onReset,
-}: InventoryFiltersProps) {
+  category = '',
+  stockStatus = '',
+  onCategoryChange = () => {},
+  onStockStatusChange = () => {},
+  onReset = () => {},
+}: InventoryFiltersProps = {}) {
   return (
     <div className="flex items-center space-x-4">
       <div className="w-[200px]">

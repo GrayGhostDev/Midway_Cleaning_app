@@ -1,50 +1,30 @@
-import * as Sentry from '@sentry/nextjs';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+// Sentry stub -- @sentry/nextjs is not installed.
+// Install @sentry/nextjs when error monitoring is needed.
 
 export const initializeSentry = () => {
-  Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 1.0,
-    profilesSampleRate: 1.0,
-    integrations: [nodeProfilingIntegration()],
-    beforeSend(event) {
-      // Sanitize sensitive data
-      if (event.request?.cookies) {
-        event.request.cookies = { redacted: '[Redacted]' };
-      }
-      return event;
-    },
-  });
+  console.log('[SENTRY STUB] initializeSentry -- no-op');
 };
 
-export const captureException = (error: Error, context?: Record<string, any>) => {
-  Sentry.captureException(error, { extra: context });
+export const captureException = (error: Error, context?: Record<string, unknown>) => {
+  console.error('[SENTRY STUB] captureException:', error.message, context);
 };
 
-export const captureMessage = (message: string, context?: Record<string, any>) => {
-  Sentry.captureMessage(message, { extra: context });
+export const captureMessage = (message: string, context?: Record<string, unknown>) => {
+  console.log('[SENTRY STUB] captureMessage:', message, context);
 };
 
 export const setUserContext = (user: { id: string; email: string }) => {
-  Sentry.setUser({
-    id: user.id,
-    email: user.email,
-  });
+  console.log('[SENTRY STUB] setUserContext:', user.id);
 };
 
 export const clearUserContext = () => {
-  Sentry.setUser(null);
+  console.log('[SENTRY STUB] clearUserContext');
 };
 
-// Simple performance monitoring without transactions
-export const monitorPerformance = (name: string, fn: () => Promise<any>) => {
+export const monitorPerformance = (name: string, fn: () => Promise<unknown>) => {
   const startTime = performance.now();
   return fn().finally(() => {
     const duration = performance.now() - startTime;
-    Sentry.captureMessage(`Performance: ${name}`, {
-      level: 'info',
-      extra: { duration, name },
-    });
+    console.log(`[SENTRY STUB] Performance: ${name} took ${duration.toFixed(2)}ms`);
   });
 };

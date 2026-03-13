@@ -5,17 +5,24 @@ import { z } from 'zod';
 import { logger } from './logger';
 import { ApiError } from './errors';
 
-// Initialize rate limiter
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
-
-const ratelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '10 s'), // 10 requests per 10 seconds
-  analytics: true,
-});
+// Lazy-initialize rate limiter to avoid build-time errors with placeholder env vars
+let _ratelimit: Ratelimit | null = null;
+function getRatelimit() {
+  if (!_ratelimit) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    const redis = new Redis({ url, token });
+    _ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '10 s'),
+      analytics: true,
+    });
+  }
+  return _ratelimit;
+}
 
 // Middleware composition helper
 export const compose = (...middlewares: any[]) => {
@@ -49,7 +56,10 @@ export const validateRequest = (schema: z.ZodType) => {
 // Rate limiting middleware
 export const rateLimiter = async (req: NextRequest) => {
   try {
-    const ip = req.ip ?? '127.0.0.1';
+    const ratelimit = getRatelimit();
+    if (!ratelimit) return NextResponse.next(); // Skip rate limiting when Redis is not configured
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1';
     const { success, limit, reset, remaining } = await ratelimit.limit(ip);
 
     if (!success) {

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,13 +16,10 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Schedule', href: '/dashboard/schedule', icon: Calendar },
-  { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardList },
-  { name: 'Invoices', href: '/dashboard/invoices', icon: FileText },
-  { name: 'Clients', href: '/dashboard/clients', icon: Users },
+  { name: 'Schedule', href: '/schedule', icon: Calendar },
+  { name: 'Tasks', href: '/tasks', icon: ClipboardList },
   { name: 'Documents', href: '/dashboard/documents', icon: Upload },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {

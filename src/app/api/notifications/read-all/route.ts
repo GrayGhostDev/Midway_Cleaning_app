@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
 
 export async function PUT() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
     await prisma.notification.updateMany({
-      where: {
-        userEmail: session.user.email,
-        read: false,
-      },
-      data: {
-        read: true,
-        updatedAt: new Date(),
-      },
+      where: { userId: user.id, isRead: false },
+      data: { isRead: true },
     });
 
     return new NextResponse(null, { status: 204 });

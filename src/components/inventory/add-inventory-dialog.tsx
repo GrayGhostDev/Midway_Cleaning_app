@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/select';
 
 interface AddInventoryDialogProps {
-  onAdd: (item: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onAdd?: (item: {
     name: string;
     category: string;
     quantity: number;
@@ -30,8 +32,10 @@ interface AddInventoryDialogProps {
   }) => void;
 }
 
-export function AddInventoryDialog({ onAdd }: AddInventoryDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddInventoryDialog({ open: controlledOpen, onOpenChange, onAdd }: AddInventoryDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -44,7 +48,7 @@ export function AddInventoryDialog({ onAdd }: AddInventoryDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd(formData);
+    onAdd?.(formData);
     setOpen(false);
     setFormData({
       name: '',

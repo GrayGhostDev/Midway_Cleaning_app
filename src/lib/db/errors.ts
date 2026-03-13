@@ -1,4 +1,5 @@
-import { Prisma } from '@prisma/client';
+// Database error handling -- generic implementation (not Prisma-specific).
+// These error types work with any database client (Supabase, raw SQL, etc.).
 
 export class DatabaseError extends Error {
   constructor(
@@ -12,28 +13,34 @@ export class DatabaseError extends Error {
 }
 
 export function handleDatabaseError(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    // Handle known Prisma errors
-    switch (error.code) {
-      case 'P2002':
+  if (error instanceof DatabaseError) {
+    throw error;
+  }
+
+  // Handle PostgreSQL error codes (returned by Supabase/pg)
+  const pgError = error as { code?: string; message?: string; detail?: string };
+
+  if (pgError.code) {
+    switch (pgError.code) {
+      case '23505':
         throw new DatabaseError(
           'A unique constraint would be violated.',
           'UNIQUE_CONSTRAINT_VIOLATION',
           error
         );
-      case 'P2014':
-        throw new DatabaseError(
-          'The change you are trying to make would violate the required relation.',
-          'RELATION_VIOLATION',
-          error
-        );
-      case 'P2003':
+      case '23503':
         throw new DatabaseError(
           'Foreign key constraint failed.',
           'FOREIGN_KEY_VIOLATION',
           error
         );
-      case 'P2025':
+      case '23502':
+        throw new DatabaseError(
+          'A required field is missing.',
+          'NOT_NULL_VIOLATION',
+          error
+        );
+      case 'PGRST116':
         throw new DatabaseError(
           'Record not found.',
           'NOT_FOUND',
@@ -41,52 +48,34 @@ export function handleDatabaseError(error: unknown): never {
         );
       default:
         throw new DatabaseError(
-          'An unexpected database error occurred.',
+          pgError.message || 'An unexpected database error occurred.',
           'UNKNOWN_ERROR',
           error
         );
     }
-  } else if (error instanceof Prisma.PrismaClientValidationError) {
-    throw new DatabaseError(
-      'Invalid data provided.',
-      'VALIDATION_ERROR',
-      error
-    );
-  } else if (error instanceof Prisma.PrismaClientInitializationError) {
-    throw new DatabaseError(
-      'Failed to initialize database connection.',
-      'INITIALIZATION_ERROR',
-      error
-    );
-  } else if (error instanceof Prisma.PrismaClientRustPanicError) {
-    throw new DatabaseError(
-      'A critical database error occurred.',
-      'CRITICAL_ERROR',
-      error
-    );
-  } else {
-    throw new DatabaseError(
-      'An unexpected error occurred.',
-      'UNKNOWN_ERROR',
-      error
-    );
   }
+
+  throw new DatabaseError(
+    'An unexpected error occurred.',
+    'UNKNOWN_ERROR',
+    error
+  );
 }
 
 export function isUniqueConstraintError(error: unknown): boolean {
   return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+    error instanceof DatabaseError && error.code === 'UNIQUE_CONSTRAINT_VIOLATION'
   );
 }
 
 export function isNotFoundError(error: unknown): boolean {
   return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025'
+    error instanceof DatabaseError && error.code === 'NOT_FOUND'
   );
 }
 
 export function isForeignKeyError(error: unknown): boolean {
   return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003'
+    error instanceof DatabaseError && error.code === 'FOREIGN_KEY_VIOLATION'
   );
 }

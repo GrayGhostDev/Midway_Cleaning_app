@@ -8,20 +8,20 @@ import {
 } from '@/components/ui/select';
 
 interface EmployeeFiltersProps {
-  role: string;
-  status: string;
-  onRoleChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
-  onReset: () => void;
+  role?: string;
+  status?: string;
+  onRoleChange?: (value: string) => void;
+  onStatusChange?: (value: string) => void;
+  onReset?: () => void;
 }
 
 export function EmployeeFilters({
-  role,
-  status,
-  onRoleChange,
-  onStatusChange,
-  onReset,
-}: EmployeeFiltersProps) {
+  role = '',
+  status = '',
+  onRoleChange = () => {},
+  onStatusChange = () => {},
+  onReset = () => {},
+}: EmployeeFiltersProps = {}) {
   return (
     <div className="flex items-center space-x-4">
       <div className="w-[200px]">

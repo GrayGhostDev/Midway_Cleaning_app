@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
 interface TimeSlot {
   id: string
@@ -33,14 +33,18 @@ const weekAvailability: DayAvailability[] = [
   // Add more days as needed
 ]
 
-export function ServiceAvailability() {
+interface ServiceAvailabilityProps {
+  serviceId?: number;
+}
+
+export function ServiceAvailability({ serviceId }: ServiceAvailabilityProps) {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Service Availability</Card.Title>
-        <Card.Description>Available time slots for booking</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Service Availability</CardTitle>
+        <CardDescription>Available time slots for booking</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           {weekAvailability.map((day) => (
             <div key={day.date} className="border-b pb-4 last:border-0">
@@ -69,7 +73,7 @@ export function ServiceAvailability() {
             </div>
           ))}
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

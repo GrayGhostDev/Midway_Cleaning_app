@@ -31,11 +31,11 @@ export function Navigation() {
             <Link href="/" className="flex items-center space-x-2">
               <div className="relative h-8 w-8">
                 <Image
-                  src="/midway-logo.jpg"
+                  src="/midway-logo.svg"
                   alt="Midway Cleaning Co."
                   width={32}
                   height={32}
-                  className="logo-spin absolute inset-0 w-full h-full object-contain"
+                  unoptimized
                 />
               </div>
               <span className="text-xl font-bold">Midway Cleaning Co.</span>

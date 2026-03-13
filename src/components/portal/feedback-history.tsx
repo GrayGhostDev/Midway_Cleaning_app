@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface Feedback {
   id: string
@@ -73,11 +73,11 @@ export function FeedbackHistory() {
 
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Feedback History</Card.Title>
-        <Card.Description>Your past service feedback and our responses</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Feedback History</CardTitle>
+        <CardDescription>Your past service feedback and our responses</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           {feedbackHistory.map((feedback) => (
             <div
@@ -123,7 +123,7 @@ export function FeedbackHistory() {
             </div>
           ))}
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

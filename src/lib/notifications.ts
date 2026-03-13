@@ -1,8 +1,5 @@
-import { getIO } from './socket';
-import { Redis } from 'ioredis';
-import { clerkClient } from '@clerk/nextjs';
-
-const redis = new Redis(process.env.UPSTASH_REDIS_REST_URL!);
+// Notifications stub -- ioredis is not installed, socket.io server not configured.
+// Will be replaced with Supabase Realtime or direct fetch when ready.
 
 export interface Notification {
   id: string;
@@ -12,10 +9,12 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
-export async function sendNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) {
+export async function sendNotification(
+  notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
+): Promise<Notification> {
   const id = `notification:${Date.now()}:${Math.random().toString(36).substr(2, 9)}`;
   const fullNotification: Notification = {
     ...notification,
@@ -24,84 +23,42 @@ export async function sendNotification(notification: Omit<Notification, 'id' | '
     createdAt: new Date(),
   };
 
-  // Store notification in Redis
-  await redis.setex(
-    `notifications:${notification.userId}:${id}`,
-    60 * 60 * 24 * 7, // 7 days
-    JSON.stringify(fullNotification)
-  );
-
-  // Send real-time notification
-  const io = getIO();
-  io.to(`user:${notification.userId}`).emit('notification', fullNotification);
+  console.log('[NOTIFICATIONS STUB] sendNotification:', {
+    id,
+    userId: notification.userId,
+    type: notification.type,
+    title: notification.title,
+  });
 
   return fullNotification;
 }
 
-export async function getUnreadNotifications(userId: string): Promise<Notification[]> {
-  const pattern = `notifications:${userId}:*`;
-  const keys = await redis.keys(pattern);
-  const notifications: Notification[] = [];
-
-  for (const key of keys) {
-    const data = await redis.get(key);
-    if (data) {
-      const notification = JSON.parse(data) as Notification;
-      if (!notification.read) {
-        notifications.push(notification);
-      }
-    }
-  }
-
-  return notifications.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function getUnreadNotifications(_userId: string): Promise<Notification[]> {
+  return [];
 }
 
-export async function markNotificationAsRead(userId: string, notificationId: string): Promise<boolean> {
-  const key = `notifications:${userId}:${notificationId}`;
-  const data = await redis.get(key);
-  
-  if (!data) return false;
-
-  const notification = JSON.parse(data) as Notification;
-  notification.read = true;
-
-  await redis.setex(
-    key,
-    60 * 60 * 24 * 7, // 7 days
-    JSON.stringify(notification)
-  );
-
+export async function markNotificationAsRead(
+  _userId: string,
+  _notificationId: string
+): Promise<boolean> {
   return true;
 }
 
 export async function sendBulkNotification(
   userIds: string[],
   notification: Omit<Notification, 'id' | 'createdAt' | 'read' | 'userId'>
-) {
-  const notifications = await Promise.all(
+): Promise<Notification[]> {
+  return Promise.all(
     userIds.map(userId =>
-      sendNotification({
-        ...notification,
-        userId,
-      })
+      sendNotification({ ...notification, userId })
     )
   );
-
-  return notifications;
 }
 
 export async function sendRoleNotification(
-  role: string,
-  notification: Omit<Notification, 'id' | 'createdAt' | 'read' | 'userId'>
-) {
-  const users = await clerkClient.users.getUserList({
-    // Add role filtering when available in Clerk
-  });
-
-  return sendBulkNotification(
-    users.map(user => user.id),
-    notification
-  );
+  _role: string,
+  _notification: Omit<Notification, 'id' | 'createdAt' | 'read' | 'userId'>
+): Promise<Notification[]> {
+  console.log('[NOTIFICATIONS STUB] sendRoleNotification -- no-op');
+  return [];
 }

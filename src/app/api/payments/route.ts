@@ -1,114 +1,76 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const invoiceId = searchParams.get('invoiceId');
+    const bookingId = searchParams.get('bookingId');
 
-    let whereClause: any = {};
-    if (invoiceId) whereClause.invoiceId = invoiceId;
+    const where: Record<string, unknown> = {};
+    if (bookingId) where.bookingId = bookingId;
 
     const payments = await prisma.payment.findMany({
-      where: whereClause,
+      where,
       include: {
-        invoice: {
-          select: {
-            number: true,
-            client: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
+        booking: {
+          include: {
+            user: { select: { name: true, email: true } },
+            service: { select: { name: true } },
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(payments);
   } catch (error) {
     console.error('Error fetching payments:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { invoiceId, amount, method, transactionId, notes } = body;
+    const { bookingId, amount, paymentMethod, transactionId } = body;
 
-    // Verify invoice exists and payment amount is valid
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        payments: true,
-      },
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { payment: true },
     });
 
-    if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Calculate total paid amount
-    const totalPaid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const remainingAmount = invoice.amount - totalPaid;
-
-    if (amount > remainingAmount) {
-      return NextResponse.json(
-        { error: 'Payment amount exceeds remaining balance' },
-        { status: 400 }
-      );
+    if (booking.payment) {
+      return NextResponse.json({ error: 'Payment already exists for this booking' }, { status: 400 });
     }
 
-    // Create the payment
-    const payment = await prisma.$transaction(async (prisma) => {
-      const payment = await prisma.payment.create({
-        data: {
-          invoiceId,
-          amount,
-          method,
-          status: 'COMPLETED', // You might want to handle different statuses based on payment method
-          transactionId,
-          notes,
-        },
-      });
-
-      // Update invoice status if fully paid
-      if (totalPaid + amount >= invoice.amount) {
-        await prisma.invoice.update({
-          where: { id: invoiceId },
-          data: { status: 'PAID' },
-        });
-      }
-
-      return payment;
+    const payment = await prisma.payment.create({
+      data: {
+        bookingId,
+        amount,
+        status: 'PAID',
+        paymentMethod,
+        transactionId,
+      },
     });
 
     return NextResponse.json(payment);
   } catch (error) {
     console.error('Error processing payment:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

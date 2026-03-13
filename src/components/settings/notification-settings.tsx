@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function NotificationSettings() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Notification Settings</Card.Title>
-        <Card.Description>Configure notification preferences</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Notification Settings</CardTitle>
+        <CardDescription>Configure notification preferences</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Notification settings component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Save Preferences</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

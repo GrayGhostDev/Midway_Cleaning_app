@@ -31,4 +31,26 @@ export interface Booking {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
-} 
+}
+
+export interface RevenueData {
+  total: number;
+  change: number;
+  data: {
+    date: string;
+    amount: number;
+  }[];
+}
+
+export interface TasksResponse {
+  tasks: {
+    id: string;
+    title: string;
+    status: string;
+    assignee?: string;
+    dueDate?: string;
+  }[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

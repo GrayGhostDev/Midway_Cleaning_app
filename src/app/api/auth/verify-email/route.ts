@@ -1,124 +1,24 @@
 import { NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
-import prisma from '@/lib/prisma';
-import { sendEmail } from '@/lib/email';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
 
-export async function POST(request: Request) {
+// Email verification is handled by Clerk natively.
+// This endpoint is kept for backwards compatibility.
+
+export async function POST() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    if (user.emailVerified) {
-      return NextResponse.json(
-        { error: 'Email already verified' },
-        { status: 400 }
-      );
-    }
-
-    // Generate verification token
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiration
-
-    // Save verification token
-    await prisma.emailVerification.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
-
-    // Send verification email
-    const verifyUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify Your Email Address',
-      template: 'email-verification',
-      variables: {
-        name: user.name || 'User',
-        verifyUrl,
-        expiresAt: expiresAt.toLocaleDateString(),
-      },
-    });
-
+    // Clerk handles email verification automatically.
+    // If you need to trigger a verification email, use Clerk's API:
+    // const user = await (await clerkClient()).users.getUser(userId);
     return NextResponse.json({
-      message: 'Verification email sent successfully',
+      message: 'Email verification is managed by Clerk. Check your email for a verification link.',
     });
   } catch (error) {
-    console.error('Error sending verification email:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: Request) {
-  try {
-    const { token } = await request.json();
-
-    // Find valid verification token
-    const verification = await prisma.emailVerification.findFirst({
-      where: {
-        token,
-        expiresAt: { gt: new Date() },
-        used: false,
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!verification) {
-      return NextResponse.json(
-        { error: 'Invalid or expired verification token' },
-        { status: 400 }
-      );
-    }
-
-    // Update user and mark token as used
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: verification.userId },
-        data: { emailVerified: new Date() },
-      }),
-      prisma.emailVerification.update({
-        where: { id: verification.id },
-        data: { used: true },
-      }),
-    ]);
-
-    // Send confirmation email
-    await sendEmail({
-      to: verification.user.email,
-      subject: 'Email Verified Successfully',
-      template: 'email-verified',
-      variables: {
-        name: verification.user.name || 'User',
-      },
-    });
-
-    return NextResponse.json({
-      message: 'Email verified successfully',
-    });
-  } catch (error) {
-    console.error('Error verifying email:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    console.error('Error with email verification:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

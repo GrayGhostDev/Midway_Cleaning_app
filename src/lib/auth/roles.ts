@@ -1,55 +1,13 @@
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  EMPLOYEE = 'EMPLOYEE',
-  CLIENT = 'CLIENT',
-}
+// Re-export from the unified auth module for backwards compatibility.
+// New code should import directly from '@/lib/auth'.
+export { type Role, ROLES, roleHierarchy, can as hasPermission, hasRole as canAccessRole } from '@/lib/auth';
 
-export const roleHierarchy: Record<UserRole, number> = {
-  [UserRole.ADMIN]: 4,
-  [UserRole.MANAGER]: 3,
-  [UserRole.EMPLOYEE]: 2,
-  [UserRole.CLIENT]: 1,
+// Legacy enum-like export for code that imports UserRole as an object constant
+export const UserRole = {
+  ADMIN: 'ADMIN' as const,
+  MANAGER: 'MANAGER' as const,
+  CLEANER: 'CLEANER' as const,
+  CLIENT: 'CLIENT' as const,
 };
 
-export const rolePermissions: Record<UserRole, string[]> = {
-  [UserRole.ADMIN]: [
-    'manage:users',
-    'manage:roles',
-    'manage:settings',
-    'view:analytics',
-    'manage:invoices',
-    'manage:schedules',
-    'manage:tasks',
-    'manage:documents',
-    'manage:clients',
-  ],
-  [UserRole.MANAGER]: [
-    'manage:schedules',
-    'manage:tasks',
-    'manage:invoices',
-    'view:analytics',
-    'manage:documents',
-    'manage:clients',
-  ],
-  [UserRole.EMPLOYEE]: [
-    'view:schedules',
-    'view:tasks',
-    'manage:assigned_tasks',
-    'view:documents',
-  ],
-  [UserRole.CLIENT]: [
-    'view:own_schedules',
-    'view:own_invoices',
-    'manage:own_documents',
-    'manage:own_profile',
-  ],
-};
-
-export function hasPermission(userRole: UserRole, requiredPermission: string): boolean {
-  return rolePermissions[userRole].includes(requiredPermission);
-}
-
-export function canAccessRole(userRole: UserRole, targetRole: UserRole): boolean {
-  return roleHierarchy[userRole] >= roleHierarchy[targetRole];
-}
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];

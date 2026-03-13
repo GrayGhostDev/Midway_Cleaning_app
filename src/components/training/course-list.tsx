@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-export function CourseList() {
+export function CourseList({ searchQuery }: { searchQuery?: string }) {
   return (
     <Card>
       <CardHeader>

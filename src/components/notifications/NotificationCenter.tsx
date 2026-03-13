@@ -127,11 +127,6 @@ export function NotificationCenter() {
     }).format(new Date(date));
   };
 
-  useEffect(() => {
-    const unsubscribe = subscribeToNotifications(addNotification);
-    return () => unsubscribe();
-  }, [addNotification]);
-
   return (
     <div className="relative">
       <Button

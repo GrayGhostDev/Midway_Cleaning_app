@@ -1,6 +1,6 @@
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { AuthGuard } from '../Auth/AuthGuard';
+import { AuthGuard } from '../auth/AuthGuard';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (

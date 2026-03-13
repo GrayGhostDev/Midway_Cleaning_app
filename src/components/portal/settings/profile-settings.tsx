@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function ProfileSettings() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Profile Settings</Card.Title>
-        <Card.Description>Manage your profile information</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Profile Settings</CardTitle>
+        <CardDescription>Manage your profile information</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Profile settings component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Save Profile</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

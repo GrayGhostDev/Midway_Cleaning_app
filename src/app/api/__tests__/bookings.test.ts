@@ -2,7 +2,7 @@ import { createMocks } from 'node-mocks-http';
 import { NextRequest } from 'next/server';
 import { POST, GET } from '../bookings/route';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { mockEmailService } from '@/test/test-utils';
 
 // Mock Clerk auth

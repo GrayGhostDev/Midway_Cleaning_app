@@ -1,8 +1,10 @@
+'use client';
+
 import React from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth as useClerkAuth, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Role, can, canAccess, hasRole } from '@/lib/auth/rbac';
+import { type Role, can, canAccess, hasRole } from '@/lib/auth';
 
 interface AuthUser {
   id: string;
@@ -12,42 +14,49 @@ interface AuthUser {
 }
 
 export function useAuth(requiredRoles?: Role[]) {
-  const { data: session, status } = useSession();
+  const { isSignedIn, isLoaded, userId } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const router = useRouter();
-  const user = session?.user as AuthUser | undefined;
+
+  const role = (clerkUser?.publicMetadata?.role as Role) || 'CLIENT';
+
+  const user: AuthUser | undefined =
+    isSignedIn && clerkUser
+      ? {
+          id: userId!,
+          email: clerkUser.primaryEmailAddress?.emailAddress || '',
+          name: clerkUser.fullName || '',
+          role,
+        }
+      : undefined;
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (!isLoaded) return;
 
-    if (!session) {
-      router.push('/login');
+    if (!isSignedIn) {
+      router.push('/sign-in');
       return;
     }
 
     if (requiredRoles && user && !canAccess(user.role, requiredRoles)) {
       router.push('/dashboard');
     }
-  }, [session, status, requiredRoles, router, user]);
-
-  const isAuthenticated = !!session;
-  const isLoading = status === 'loading';
+  }, [isSignedIn, isLoaded, requiredRoles, router, user]);
 
   return {
     user,
-    isAuthenticated,
-    isLoading,
+    isAuthenticated: isSignedIn,
+    isLoading: !isLoaded,
     role: user?.role,
-    // Permission checking functions
-    can: (action: string, subject: string) => user ? can(user.role, action, subject) : false,
-    hasRole: (role: Role) => user ? hasRole(user.role, role) : false,
+    can: (action: string, subject: string) => (user ? can(user.role, action, subject) : false),
+    hasRole: (r: Role) => (user ? hasRole(user.role, r) : false),
     isAdmin: user?.role === 'ADMIN',
     isManager: user?.role === 'MANAGER',
-    isEmployee: user?.role === 'EMPLOYEE',
+    isCleaner: user?.role === 'CLEANER',
     isClient: user?.role === 'CLIENT',
   };
 }
 
-// HOC for protecting components
 export function withAuth<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   requiredRoles?: Role[]
@@ -67,7 +76,6 @@ export function withAuth<P extends object>(
   };
 }
 
-// Custom error for authentication failures
 export class AuthError extends Error {
   constructor(
     message: string,
@@ -78,16 +86,15 @@ export class AuthError extends Error {
   }
 }
 
-// Helper function to handle auth errors
 export function handleAuthError(error: unknown) {
   if (error instanceof AuthError) {
     switch (error.code) {
       case 'UNAUTHORIZED':
-        return { error: 'Please log in to continue' };
+        return { error: 'Please sign in to continue' };
       case 'FORBIDDEN':
         return { error: 'You do not have permission to access this resource' };
       case 'INVALID_CREDENTIALS':
-        return { error: 'Invalid email or password' };
+        return { error: 'Invalid credentials' };
       default:
         return { error: 'An authentication error occurred' };
     }

@@ -1,22 +1,21 @@
 version: 2
 updates:
-  # Enable version updates for npm
+  # npm dependencies
   - package-ecosystem: "npm"
-    # Look for `package.json` and `lock` files in the `root` directory
     directory: "/"
-    # Check for updates once a week
     schedule:
       interval: "weekly"
-    # Specify labels for pull requests
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
     labels:
       - "npm dependencies"
       - "security"
-    # Set review requirements
     reviewers:
       - "GrayGhostDev"
-    # Limit the number of open pull requests
     open-pull-requests-limit: 10
-    # Allow up to 5 updates per pull request
+    commit-message:
+      prefix: "chore(deps)"
     groups:
       dependencies:
         patterns:
@@ -25,13 +24,34 @@ updates:
           - "minor"
           - "patch"
 
-  # Enable version updates for GitHub Actions
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
     labels:
       - "github-actions"
       - "security"
     reviewers:
       - "GrayGhostDev"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Docker (Dockerfile base images)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    labels:
+      - "docker"
+      - "security"
+    reviewers:
+      - "GrayGhostDev"
+    commit-message:
+      prefix: "chore(docker)"

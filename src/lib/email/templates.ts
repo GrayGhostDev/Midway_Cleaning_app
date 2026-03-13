@@ -1,6 +1,13 @@
 import { format } from 'date-fns';
 import { Schedule } from '../schedule';
-import { FileMetadata } from '../storage';
+
+// FileMetadata defined locally -- ../storage does not export this type.
+interface FileMetadata {
+  originalName: string;
+  mimeType: string;
+  size: number;
+  tags?: string[];
+}
 
 interface EmailTemplate {
   subject: string;

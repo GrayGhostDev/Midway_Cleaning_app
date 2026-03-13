@@ -1,127 +1,75 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const scheduleId = searchParams.get('scheduleId');
-    const assignedToId = searchParams.get('assignedToId');
+    const cleanerId = searchParams.get('cleanerId');
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
+    const bookingId = searchParams.get('bookingId');
 
-    let whereClause: any = {};
-    if (scheduleId) whereClause.scheduleId = scheduleId;
-    if (assignedToId) whereClause.assignedToId = assignedToId;
-    if (status) whereClause.status = status;
-    if (priority) whereClause.priority = priority;
+    const where: Record<string, unknown> = {};
+    if (cleanerId) where.cleanerId = cleanerId;
+    if (status) where.status = status;
+    if (priority) where.priority = priority;
+    if (bookingId) where.bookingId = bookingId;
 
-    const tasks = await prisma.workTask.findMany({
-      where: whereClause,
+    const tasks = await prisma.task.findMany({
+      where,
       include: {
-        schedule: {
+        cleaner: { select: { name: true, email: true } },
+        booking: {
           include: {
-            location: true,
-          },
-        },
-        service: true,
-        assignedTo: {
-          select: {
-            name: true,
-            email: true,
+            service: true,
           },
         },
       },
-      orderBy: [
-        {
-          priority: 'desc',
-        },
-        {
-          createdAt: 'desc',
-        },
-      ],
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
 
     return NextResponse.json(tasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const {
-      scheduleId,
-      serviceId,
-      assignedToId,
-      priority,
-      notes,
-    } = body;
+    const { title, description, cleanerId, bookingId, priority, dueDate } = body;
 
-    // Verify schedule exists and is not completed
-    const schedule = await prisma.workSchedule.findUnique({
-      where: { id: scheduleId },
-    });
-
-    if (!schedule) {
-      return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
-    }
-
-    if (schedule.status === 'COMPLETED') {
-      return NextResponse.json(
-        { error: 'Cannot add tasks to completed schedule' },
-        { status: 400 }
-      );
-    }
-
-    // Create the task
-    const task = await prisma.workTask.create({
+    const task = await prisma.task.create({
       data: {
-        scheduleId,
-        serviceId,
+        title,
+        description,
         status: 'PENDING',
-        assignedToId,
-        priority,
-        notes,
+        priority: priority || 'MEDIUM',
+        cleanerId,
+        bookingId,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
       },
       include: {
-        schedule: {
-          include: {
-            location: true,
-          },
-        },
-        service: true,
-        assignedTo: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        cleaner: { select: { name: true, email: true } },
+        booking: { include: { service: true } },
       },
     });
 
     return NextResponse.json(task);
   } catch (error) {
     console.error('Error creating task:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

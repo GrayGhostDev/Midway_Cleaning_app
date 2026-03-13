@@ -1,3 +1,5 @@
+'use client';
+
 import { ReactNode } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Sidebar from './Sidebar';

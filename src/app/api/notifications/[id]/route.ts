@@ -1,30 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const notification = await prisma.notification.update({
-      where: {
-        id: params.id,
-        userEmail: session.user.email,
-      },
-      data: {
-        read: true,
-        updatedAt: new Date(),
-      },
+    const { id } = await params;
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    const notification = await prisma.notification.updateMany({
+      where: { id, userId: user.id },
+      data: { isRead: true },
     });
 
     return NextResponse.json(notification);
@@ -34,18 +30,24 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    await prisma.notification.delete({
-      where: {
-        id: params.id,
-        userEmail: session.user.email,
-      },
+    const { id } = await params;
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    await prisma.notification.deleteMany({
+      where: { id, userId: user.id },
     });
 
     return new NextResponse(null, { status: 204 });

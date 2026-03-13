@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma } from '@/lib/prisma';
 import { handleDatabaseError } from './errors';
 import { validateData, validatePartialData } from './validation';
 import { z } from 'zod';
@@ -126,7 +126,7 @@ export class Repository<T extends z.ZodObject<any>> {
     fn: (tx: Repository<T>) => Promise<R>
   ): Promise<R> {
     try {
-      return await prisma.$transaction(async (prismaClient) => {
+      return await prisma.$transaction(async (prismaClient: any) => {
         const txRepository = new Repository(
           prismaClient[this.model.name],
           this.schema,

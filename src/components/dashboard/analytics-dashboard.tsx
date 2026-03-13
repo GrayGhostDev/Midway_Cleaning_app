@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,6 @@ interface AnalyticsData {
   timestamp: string;
 }
 
-const queryClient = new QueryClient();
-
 export function AnalyticsDashboardContent() {
   const [timeRange, setTimeRange] = useState('monthly');
   const [dateRange, setDateRange] = useState({
@@ -28,19 +26,19 @@ export function AnalyticsDashboardContent() {
     to: new Date(),
   });
 
-  // Fetch analytics data
+  // Stable ISO strings so queryKey doesn't change on every render
+  const startISO = useMemo(() => dateRange.from.toISOString(), [dateRange.from]);
+  const endISO = useMemo(() => dateRange.to.toISOString(), [dateRange.to]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['analytics', timeRange, dateRange],
+    queryKey: ['analytics', timeRange, startISO, endISO],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        timeRange,
-        startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to.toISOString(),
-      });
+      const params = new URLSearchParams({ timeRange, startDate: startISO, endDate: endISO });
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch analytics');
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 min
   });
 
   // Download report
@@ -90,7 +88,7 @@ export function AnalyticsDashboardContent() {
             
             <DatePickerWithRange
               date={dateRange}
-              onDateChange={setDateRange}
+              onDateChange={(range) => { if (range?.from && range?.to) setDateRange({ from: range.from, to: range.to }); }}
             />
 
             <div className="flex gap-2">
@@ -121,10 +119,10 @@ export function AnalyticsDashboardContent() {
       {data && (
         <>
           {/* Revenue Chart */}
-          <RevenueChart 
-            timeRange={timeRange} 
-            startDate={dateRange.from} 
-            endDate={dateRange.to} 
+          <RevenueChart
+            timeRange={timeRange}
+            startDate={dateRange.from}
+            endDate={dateRange.to}
           />
 
           {/* Appointments Chart */}
@@ -211,6 +209,7 @@ export function AnalyticsDashboardContent() {
 }
 
 export function AnalyticsDashboard() {
+  const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
       <AnalyticsDashboardContent />

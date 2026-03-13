@@ -86,7 +86,7 @@ export async function fetchAPI<T>(
 // Auth helper functions
 export const auth = {
   login: async (email: string, password: string) => {
-    const response = await fetchAPI('/api/auth/login', {
+    const response = await fetchAPI<{ token?: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
       requiresAuth: false,
@@ -99,7 +99,7 @@ export const auth = {
   },
 
   signup: async ({ name, email, password }: { name: string; email: string; password: string }) => {
-    const response = await fetchAPI('/api/auth/signup', {
+    const response = await fetchAPI<{ token?: string }>('/api/auth/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export const auth = {
       body: JSON.stringify({ name, email, password }),
       requiresAuth: false,
     });
-    
+
     if (response.token) {
       document.cookie = `auth-token=${response.token}; path=/; max-age=86400; samesite=lax`;
       localStorage.setItem('auth-token', response.token);

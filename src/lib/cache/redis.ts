@@ -1,10 +1,18 @@
 import { Redis } from '@upstash/redis';
 import { logger } from '@/lib/api/logger';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (!_redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    _redis = new Redis({ url, token });
+  }
+  return _redis;
+}
 
 interface CacheConfig {
   ttl?: number;
@@ -17,6 +25,8 @@ export class CacheManager {
 
   static async get<T>(key: string): Promise<T | null> {
     try {
+      const redis = getRedis();
+      if (!redis) return null;
       const data = await redis.get(`${this.prefix}${key}`);
       return data as T;
     } catch (error) {
@@ -27,6 +37,8 @@ export class CacheManager {
 
   static async set(key: string, value: any, ttl?: number): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
       const cacheKey = `${this.prefix}${key}`;
       if (ttl) {
         await redis.setex(cacheKey, ttl, value);
@@ -40,6 +52,8 @@ export class CacheManager {
 
   static async delete(key: string): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
       await redis.del(`${this.prefix}${key}`);
     } catch (error) {
       logger.error('Cache delete error', { key, error });
@@ -48,6 +62,8 @@ export class CacheManager {
 
   static async clear(pattern: string): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
       const keys = await redis.keys(`${this.prefix}${pattern}`);
       if (keys.length > 0) {
         await redis.del(...keys);
@@ -83,6 +99,8 @@ export class CacheManager {
     limit: number,
     window: number
   ): Promise<boolean> {
+    const redis = getRedis();
+    if (!redis) return true; // Allow request when Redis is unavailable
     const current = await redis.incr(`${this.prefix}ratelimit:${key}`);
     if (current === 1) {
       await redis.expire(`${this.prefix}ratelimit:${key}`, window);
@@ -107,6 +125,8 @@ export class CacheManager {
   // Batch operations
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
     try {
+      const redis = getRedis();
+      if (!redis) return keys.map(() => null);
       const cacheKeys = keys.map(key => `${this.prefix}${key}`);
       const values = await redis.mget(...cacheKeys);
       return values as (T | null)[];
@@ -120,8 +140,10 @@ export class CacheManager {
     entries: { key: string; value: any; ttl?: number }[]
   ): Promise<void> {
     try {
+      const redis = getRedis();
+      if (!redis) return;
       const pipeline = redis.pipeline();
-      
+
       entries.forEach(({ key, value, ttl }) => {
         const cacheKey = `${this.prefix}${key}`;
         if (ttl) {

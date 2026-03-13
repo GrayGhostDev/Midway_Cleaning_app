@@ -1,0 +1,60 @@
+# Merlin Export Check
+# Warns when .mproject bundles are modified without updating companion .xml exports.
+# Copy from ~/Business/merlin-project/automation/github-actions/merlin-export-check.yml
+#
+# Trigger: push or PR affecting merlin/ directory
+name: Merlin Export Check
+
+on:
+  push:
+    paths:
+      - 'merlin/**/plan.mproject/**'
+  pull_request:
+    paths:
+      - 'merlin/**/plan.mproject/**'
+
+jobs:
+  check-xml-export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for stale XML exports
+        run: |
+          STALE=0
+          # Check if any .mproject files changed without companion .xml update
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          for mproject_file in $(echo "$CHANGED" | grep '\.mproject/'); do
+            plan_dir=$(echo "$mproject_file" | sed 's|/plan\.mproject/.*|/|')
+            if ! echo "$CHANGED" | grep -q "${plan_dir}plan.xml/"; then
+              echo "::warning file=$mproject_file::Merlin plan updated but XML export not refreshed"
+              STALE=1
+            fi
+          done
+          if [ "$STALE" -eq 1 ]; then
+            echo "::notice::One or more Merlin plans were updated without refreshing the XML export."
+            echo "Run: Open plan in Merlin Project > File > Actions > Export to Git XML"
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const mprojectFiles = files.filter(f => f.filename.includes('.mproject/'));
+            const xmlFiles = files.filter(f => f.filename.includes('plan.xml/'));
+            if (mprojectFiles.length > 0 && xmlFiles.length === 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `**Merlin Export Check**\n\nMerlin plan files were updated without refreshing the XML export.\n\nPlease export from Merlin Project: **File > Actions > Export to Git XML**`,
+              });
+            }

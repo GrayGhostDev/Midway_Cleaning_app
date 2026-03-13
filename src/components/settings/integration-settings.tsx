@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function IntegrationSettings() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Integration Settings</Card.Title>
-        <Card.Description>Configure third-party integrations</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Integration Settings</CardTitle>
+        <CardDescription>Configure third-party integrations</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Integration settings component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Save Settings</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 const serviceTypes = [
   { id: 'regular', name: 'Regular Cleaning', price: 150 },
@@ -21,15 +20,72 @@ const timeSlots = [
   '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
 ];
 
+function parseTimeSlot(slot: string, base: Date): Date {
+  const [time, meridian] = slot.split(' ');
+  const [rawHours, minutes] = time.split(':').map(Number);
+  const hours = meridian === 'PM' && rawHours !== 12 ? rawHours + 12 : rawHours === 12 && meridian === 'AM' ? 0 : rawHours;
+  const d = new Date(base);
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
 export function ServiceBooking() {
   const [date, setDate] = useState<Date>();
   const [serviceType, setServiceType] = useState<string>();
   const [timeSlot, setTimeSlot] = useState<string>();
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement booking submission
-    console.log({ date, serviceType, timeSlot });
+
+    if (!serviceType || !date || !timeSlot) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please select a service, date, and time slot.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const bookingDate = parseTimeSlot(timeSlot, date);
+      const response = await fetch('/api/client/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId: serviceType,
+          date: bookingDate.toISOString(),
+          notes: notes || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Booking failed');
+      }
+
+      toast({
+        title: 'Booking confirmed',
+        description: `Your ${serviceTypes.find(s => s.id === serviceType)?.name} has been scheduled.`,
+      });
+
+      // Reset form
+      setDate(undefined);
+      setServiceType(undefined);
+      setTimeSlot(undefined);
+      setNotes('');
+    } catch (err) {
+      toast({
+        title: 'Booking failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -49,7 +105,7 @@ export function ServiceBooking() {
               <SelectContent>
                 {serviceTypes.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
-                    {service.name} - ${service.price}
+                    {service.name} — ${service.price}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -63,7 +119,7 @@ export function ServiceBooking() {
               selected={date}
               onSelect={setDate}
               className="rounded-md border"
-              disabled={(date) => date < new Date()}
+              disabled={(d) => d < new Date()}
             />
           </div>
 
@@ -85,18 +141,17 @@ export function ServiceBooking() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Special Instructions</label>
-            <Textarea placeholder="Any specific requirements or notes..." />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Contact Number</label>
-            <Input type="tel" placeholder="Your phone number" />
+            <Textarea
+              placeholder="Any specific requirements or notes..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
         </form>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSubmit} className="w-full">
-          Book Service
+        <Button onClick={handleSubmit} className="w-full" disabled={submitting}>
+          {submitting ? 'Booking…' : 'Book Service'}
         </Button>
       </CardFooter>
     </Card>

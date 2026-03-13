@@ -1,21 +1,21 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export function Certifications() {
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Certifications</Card.Title>
-        <Card.Description>Manage employee certifications</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Certifications</CardTitle>
+        <CardDescription>Manage employee certifications</CardDescription>
+      </CardHeader>
+      <CardContent>
         <div className="text-center text-gray-500">
           Certifications component coming soon
         </div>
-      </Card.Content>
-      <Card.Footer>
+      </CardContent>
+      <CardFooter>
         <Button>Add Certification</Button>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   )
 }

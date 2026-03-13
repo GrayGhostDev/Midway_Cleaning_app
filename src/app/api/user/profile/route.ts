@@ -1,25 +1,23 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { clerkId: userId },
       select: {
         id: true,
         name: true,
         email: true,
-        phone: true,
-        company: true,
+        phoneNumber: true,
         role: true,
-        notificationPreferences: true,
+        profile: true,
       },
     });
 
@@ -36,25 +34,27 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const data = await request.json();
-    const { name, email, phone, company, role, notifications } = data;
+    const { name, phone, company } = data;
 
     const user = await prisma.user.update({
-      where: { email: session.user.email },
+      where: { clerkId: userId },
       data: {
         name,
-        email,
-        phone,
-        company,
-        role,
-        notificationPreferences: notifications,
-        updatedAt: new Date(),
+        phoneNumber: phone,
+        profile: {
+          upsert: {
+            create: { phone, company },
+            update: { phone, company },
+          },
+        },
       },
+      include: { profile: true },
     });
 
     return NextResponse.json(user);

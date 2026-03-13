@@ -5,9 +5,10 @@ interface CalendarProps {
   mode?: "single" | "range" | "multiple";
   selected?: Date | Date[] | { from: Date; to: Date };
   onSelect?: (date: Date | Date[] | { from: Date; to: Date } | undefined) => void;
+  className?: string;
 }
 
-export function Calendar({ mode = "single", selected, onSelect }: CalendarProps) {
+export function Calendar({ mode = "single", selected, onSelect, className }: CalendarProps) {
   return (
     <Card>
       <CardHeader>
@@ -16,9 +17,9 @@ export function Calendar({ mode = "single", selected, onSelect }: CalendarProps)
       </CardHeader>
       <CardContent>
         <CalendarComponent
-          mode={mode}
-          selected={selected}
-          onSelect={onSelect}
+          mode={mode as "single"}
+          selected={selected as Date | undefined}
+          onSelect={onSelect as ((date: Date | undefined) => void) | undefined}
           className="rounded-md border"
         />
       </CardContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ export function DocumentManager() {
   const [isUploading, setIsUploading] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -134,13 +135,17 @@ export function DocumentManager() {
 
       <TabsContent value="all" className="space-y-4">
         <div className="flex justify-between items-center">
-          <Input
+          <input
+            ref={fileInputRef}
             type="file"
             onChange={handleFileUpload}
-            className="max-w-xs"
+            className="hidden"
             disabled={isUploading}
           />
-          <Button disabled={isUploading}>
+          <Button
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
             {isUploading ? 'Uploading...' : 'Upload Document'}
           </Button>
         </div>

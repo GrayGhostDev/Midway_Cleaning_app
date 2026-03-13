@@ -1,133 +1,110 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+    const { id } = await params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
       include: {
-        client: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          include: {
-            service: true,
-          },
-        },
-        payments: true,
+        user: { select: { name: true, email: true } },
+        service: true,
+        payment: true,
       },
     });
 
-    if (!invoice) {
+    if (!booking) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    return NextResponse.json(invoice);
+    return NextResponse.json(booking);
   } catch (error) {
     console.error('Error fetching invoice:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
-    const { status, notes, dueDate } = body;
+    const { status, notes } = body;
 
-    const invoice = await prisma.invoice.update({
-      where: { id: params.id },
+    const booking = await prisma.booking.update({
+      where: { id },
       data: {
         status,
         notes,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
       },
       include: {
-        items: true,
-        client: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        service: true,
+        payment: true,
+        user: { select: { name: true, email: true } },
       },
     });
 
-    return NextResponse.json(invoice);
+    return NextResponse.json(booking);
   } catch (error) {
     console.error('Error updating invoice:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // First check if the invoice exists and is in DRAFT status
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+    const { id } = await params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { payment: true },
     });
 
-    if (!invoice) {
+    if (!booking) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    if (invoice.status !== 'DRAFT') {
+    if (booking.status !== 'PENDING') {
       return NextResponse.json(
-        { error: 'Only draft invoices can be deleted' },
+        { error: 'Only pending invoices can be deleted' },
         { status: 400 }
       );
     }
 
-    // Delete the invoice and all related items
-    await prisma.$transaction([
-      prisma.invoiceItem.deleteMany({
-        where: { invoiceId: params.id },
-      }),
-      prisma.invoice.delete({
-        where: { id: params.id },
-      }),
-    ]);
+    if (booking.payment) {
+      await prisma.payment.delete({ where: { id: booking.payment.id } });
+    }
+
+    await prisma.booking.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     console.error('Error deleting invoice:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

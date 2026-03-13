@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/select';
 
 interface AddLocationDialogProps {
-  onAdd: (location: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onAdd?: (location: {
     name: string;
     address: string;
     type: string;
@@ -30,8 +32,10 @@ interface AddLocationDialogProps {
   }) => void;
 }
 
-export function AddLocationDialog({ onAdd }: AddLocationDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddLocationDialog({ open: controlledOpen, onOpenChange, onAdd }: AddLocationDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -44,7 +48,7 @@ export function AddLocationDialog({ onAdd }: AddLocationDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd(formData);
+    onAdd?.(formData);
     setOpen(false);
     setFormData({
       name: '',

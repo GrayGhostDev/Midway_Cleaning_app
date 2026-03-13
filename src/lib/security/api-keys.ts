@@ -1,13 +1,21 @@
 import { NextRequest } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { nanoid } from 'nanoid';
+import { randomBytes, randomUUID } from 'crypto';
 import { ApiError } from '@/lib/api/errors';
 import { logger } from '@/lib/api/logger';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (!_redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
+      return null;
+    }
+    _redis = new Redis({ url, token });
+  }
+  return _redis;
+}
 
 interface ApiKey {
   id: string;
@@ -31,8 +39,13 @@ export class ApiKeyManager {
     permissions: string[] = ['*'],
     expiresIn?: number // in seconds
   ): Promise<ApiKey> {
-    const id = nanoid();
-    const key = `mk_${nanoid(32)}`;
+    const redis = getRedis();
+    if (!redis) {
+      throw ApiError.InternalServer('Redis is not configured');
+    }
+
+    const id = randomUUID();
+    const key = `mk_${randomBytes(16).toString('hex')}`;
     const createdAt = new Date().toISOString();
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
@@ -61,8 +74,13 @@ export class ApiKeyManager {
   }
 
   static async validateKey(key: string): Promise<ApiKey> {
+    const redis = getRedis();
+    if (!redis) {
+      throw ApiError.InternalServer('Redis is not configured');
+    }
+
     const apiKey = await redis.get<string>(`${this.KEY_PREFIX}${key}`);
-    
+
     if (!apiKey) {
       throw ApiError.Unauthorized('Invalid API key');
     }
@@ -78,16 +96,21 @@ export class ApiKeyManager {
   }
 
   static async revokeKey(key: string): Promise<void> {
+    const redis = getRedis();
+    if (!redis) return;
     await redis.del(`${this.KEY_PREFIX}${key}`);
     logger.info('API key revoked', { key });
   }
 
   static async checkRateLimit(key: string): Promise<boolean> {
+    const redis = getRedis();
+    if (!redis) return true; // Allow request when Redis is unavailable
+
     const apiKey = await this.validateKey(key);
     const usageKey = `${this.USAGE_PREFIX}${key}`;
-    
+
     const currentUsage = await redis.incr(usageKey);
-    
+
     if (currentUsage === 1) {
       await redis.expire(
         usageKey,

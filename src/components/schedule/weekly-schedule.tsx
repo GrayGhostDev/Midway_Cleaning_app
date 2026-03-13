@@ -1,6 +1,10 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
-export function WeeklySchedule() {
+interface WeeklyScheduleProps {
+  selectedDate?: Date;
+}
+
+export function WeeklySchedule({ selectedDate }: WeeklyScheduleProps) {
   return (
     <Card>
       <CardHeader>

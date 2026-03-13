@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
 interface BookingFormData {
   date: string
@@ -9,7 +9,12 @@ interface BookingFormData {
   notes: string
 }
 
-export function ServiceBookingForm() {
+interface ServiceBookingFormProps {
+  onServiceSelect?: (serviceId: number | null) => void;
+  selectedService?: number | null;
+}
+
+export function ServiceBookingForm({ onServiceSelect, selectedService }: ServiceBookingFormProps) {
   const [formData, setFormData] = useState<BookingFormData>({
     date: "",
     time: "",
@@ -36,11 +41,11 @@ export function ServiceBookingForm() {
 
   return (
     <Card>
-      <Card.Header>
-        <Card.Title>Book a Service</Card.Title>
-        <Card.Description>Schedule your next cleaning service</Card.Description>
-      </Card.Header>
-      <Card.Content>
+      <CardHeader>
+        <CardTitle>Book a Service</CardTitle>
+        <CardDescription>Schedule your next cleaning service</CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Date</label>
@@ -110,7 +115,7 @@ export function ServiceBookingForm() {
             Book Service
           </button>
         </form>
-      </Card.Content>
+      </CardContent>
     </Card>
   )
 }

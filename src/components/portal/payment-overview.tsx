@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
 interface Payment {
   id: string
@@ -62,29 +62,29 @@ export function PaymentOverview() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <Card.Header>
-            <Card.Title>Total Paid</Card.Title>
-          </Card.Header>
-          <Card.Content>
+          <CardHeader>
+            <CardTitle>Total Paid</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold text-green-600">${totalPaid}</div>
-          </Card.Content>
+          </CardContent>
         </Card>
         <Card>
-          <Card.Header>
-            <Card.Title>Outstanding Balance</Card.Title>
-          </Card.Header>
-          <Card.Content>
+          <CardHeader>
+            <CardTitle>Outstanding Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold text-red-600">${totalPending}</div>
-          </Card.Content>
+          </CardContent>
         </Card>
       </div>
 
       <Card>
-        <Card.Header>
-          <Card.Title>Recent Payments</Card.Title>
-          <Card.Description>Your payment history and pending charges</Card.Description>
-        </Card.Header>
-        <Card.Content>
+        <CardHeader>
+          <CardTitle>Recent Payments</CardTitle>
+          <CardDescription>Your payment history and pending charges</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-4">
             {payments.map((payment) => (
               <div
@@ -112,7 +112,7 @@ export function PaymentOverview() {
               </div>
             ))}
           </div>
-        </Card.Content>
+        </CardContent>
       </Card>
     </div>
   )

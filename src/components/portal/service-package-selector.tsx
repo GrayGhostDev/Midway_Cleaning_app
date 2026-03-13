@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 
 interface ServicePackage {
   id: string
@@ -57,11 +57,11 @@ export function ServicePackageSelector() {
     <div className="grid gap-6 md:grid-cols-3">
       {servicePackages.map((pkg) => (
         <Card key={pkg.id} className={pkg.recommended ? "ring-2 ring-blue-500" : ""}>
-          <Card.Header>
+          <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <Card.Title>{pkg.name}</Card.Title>
-                <Card.Description>{pkg.description}</Card.Description>
+                <CardTitle>{pkg.name}</CardTitle>
+                <CardDescription>{pkg.description}</CardDescription>
               </div>
               {pkg.recommended && (
                 <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
@@ -69,8 +69,8 @@ export function ServicePackageSelector() {
                 </span>
               )}
             </div>
-          </Card.Header>
-          <Card.Content>
+          </CardHeader>
+          <CardContent>
             <div className="mb-4">
               <span className="text-3xl font-bold">${pkg.price}</span>
               <span className="text-gray-500 ml-1">/service</span>
@@ -98,7 +98,7 @@ export function ServicePackageSelector() {
             <button className="w-full mt-6 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
               Select Package
             </button>
-          </Card.Content>
+          </CardContent>
         </Card>
       ))}
     </div>

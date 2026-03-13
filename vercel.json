@@ -1,8 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && next build",
-  "installCommand": "npm install",
-  "regions": ["iad1"],
-  "crons": []
+  "buildCommand": "npx prisma generate && npm run build",
+  "installCommand": "npm ci",
+  "regions": ["iad1"]
 }

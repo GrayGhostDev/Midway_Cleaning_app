@@ -1,24 +1,34 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
-export function AddInspectionDialog() {
+interface AddInspectionDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function AddInspectionDialog({ open: controlledOpen, onOpenChange }: AddInspectionDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
+
   return (
-    <Dialog>
-      <Dialog.Content>
-        <Dialog.Header>
-          <Dialog.Title>Add Inspection</Dialog.Title>
-          <Dialog.Description>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Inspection</DialogTitle>
+          <DialogDescription>
             Create a new quality inspection report
-          </Dialog.Description>
-        </Dialog.Header>
+          </DialogDescription>
+        </DialogHeader>
         <div className="text-center text-gray-500 py-4">
           Add inspection dialog component coming soon
         </div>
-        <Dialog.Footer>
+        <DialogFooter>
           <Button variant="outline">Cancel</Button>
           <Button>Save Inspection</Button>
-        </Dialog.Footer>
-      </Dialog.Content>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }

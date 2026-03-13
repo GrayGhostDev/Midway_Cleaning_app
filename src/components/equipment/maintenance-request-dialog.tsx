@@ -20,32 +20,44 @@ import {
 } from '@/components/ui/select';
 
 interface MaintenanceRequestDialogProps {
-  onSubmit: (request: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onSubmit?: (request: {
     equipmentId: string;
     description: string;
     priority: 'low' | 'medium' | 'high';
     requestedBy: string;
     notes: string;
   }) => void;
-  equipment: Array<{ id: string; name: string }>;
+  equipment?: Array<{ id: string; name: string }>;
 }
 
 export function MaintenanceRequestDialog({
+  open: controlledOpen,
+  onOpenChange,
   onSubmit,
-  equipment,
+  equipment = [],
 }: MaintenanceRequestDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
+  const [formData, setFormData] = useState<{
+    equipmentId: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    requestedBy: string;
+    notes: string;
+  }>({
     equipmentId: '',
     description: '',
-    priority: 'medium' as const,
+    priority: 'medium',
     requestedBy: '',
     notes: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit?.(formData);
     setOpen(false);
     setFormData({
       equipmentId: '',
@@ -110,8 +122,8 @@ export function MaintenanceRequestDialog({
             </label>
             <Select
               value={formData.priority}
-              onValueChange={(value: 'low' | 'medium' | 'high') =>
-                setFormData({ ...formData, priority: value })
+              onValueChange={(value) =>
+                setFormData({ ...formData, priority: value as 'low' | 'medium' | 'high' })
               }
             >
               <SelectTrigger>

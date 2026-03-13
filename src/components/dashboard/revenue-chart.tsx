@@ -1,8 +1,14 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
+
+// Stable module-level defaults — computed once, never change reference
+const DEFAULT_END = new Date();
+const DEFAULT_START = new Date(DEFAULT_END);
+DEFAULT_START.setMonth(DEFAULT_START.getMonth() - 1);
 
 interface RevenueChartProps {
   timeRange?: string;
@@ -10,19 +16,24 @@ interface RevenueChartProps {
   endDate?: Date;
 }
 
-export function RevenueChart({ timeRange = 'monthly', startDate = new Date(new Date().setMonth(new Date().getMonth() - 1)), endDate = new Date() }: RevenueChartProps) {
+export function RevenueChart({
+  timeRange = 'monthly',
+  startDate = DEFAULT_START,
+  endDate = DEFAULT_END,
+}: RevenueChartProps) {
+  // Stable ISO strings prevent queryKey from changing on every render
+  const startISO = useMemo(() => startDate.toISOString(), [startDate]);
+  const endISO = useMemo(() => endDate.toISOString(), [endDate]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['revenue', timeRange, startDate, endDate],
+    queryKey: ['revenue', timeRange, startISO, endISO],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        timeRange,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
+      const params = new URLSearchParams({ timeRange, startDate: startISO, endDate: endISO });
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch revenue data');
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 min — analytics don't need real-time refresh
   });
 
   return (

@@ -15,7 +15,7 @@ interface InventoryItem {
   location: string;
 }
 
-const columns = [
+const columns: { header: string; accessorKey: keyof InventoryItem; cell?: (props: { row: { original: InventoryItem } }) => React.ReactNode }[] = [
   {
     header: 'Name',
     accessorKey: 'name',
@@ -53,8 +53,9 @@ const columns = [
   },
 ];
 
-export function InventoryList() {
+export function InventoryList({ searchQuery }: { searchQuery?: string }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const effectiveSearch = searchQuery ?? searchTerm;
   const [inventory] = useState<InventoryItem[]>([
     {
       id: '1',
@@ -85,7 +86,7 @@ export function InventoryList() {
   };
 
   const filteredInventory = inventory.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    item.name.toLowerCase().includes(effectiveSearch.toLowerCase())
   );
 
   const lowStockItems = inventory.filter(

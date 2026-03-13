@@ -1,7 +1,7 @@
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Bell, Menu, Moon, Sun } from 'lucide-react';
-import { NotificationSettings } from '../navigation/NotificationSettings';
+import { NotificationSettings } from '../Navigation/NotificationSettings';
 
 export function Header() {
   const { theme, setTheme } = useTheme();

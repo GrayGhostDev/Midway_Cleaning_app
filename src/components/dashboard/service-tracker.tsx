@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, User, CheckCircle2, AlertCircle } from 'lucide-react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 interface ServiceUpdate {
   id: string;
@@ -23,32 +23,28 @@ interface ServiceUpdate {
 
 export function ServiceTracker() {
   const [services, setServices] = useState<ServiceUpdate[]>([]);
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketInstance = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001');
-    
-    socketInstance.on('connect', () => {
+    const socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001');
+
+    socket.on('connect', () => {
       console.log('Connected to service updates');
     });
 
-    socketInstance.on('serviceUpdate', (update: ServiceUpdate) => {
-      setServices(prev => {
-        const existing = prev.findIndex(s => s.id === update.id);
+    socket.on('serviceUpdate', (update: ServiceUpdate) => {
+      setServices((prev) => {
+        const existing = prev.findIndex((s) => s.id === update.id);
         if (existing !== -1) {
-          const newServices = [...prev];
-          newServices[existing] = update;
-          return newServices;
+          const next = [...prev];
+          next[existing] = update;
+          return next;
         }
         return [...prev, update];
       });
     });
 
-    setSocket(socketInstance);
-
     return () => {
-      socketInstance.disconnect();
+      socket.disconnect();
     };
   }, []);
 

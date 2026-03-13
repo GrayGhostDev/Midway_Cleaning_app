@@ -1,48 +1,76 @@
-import Link from 'next/link';
-import { useAuth } from '@clerk/nextjs';
+'use client';
 
-export function Navbar() {
+import Link from 'next/link';
+import { useAuth, UserButton } from '@clerk/nextjs';
+import { Bell, Menu } from 'lucide-react';
+import { useState } from 'react';
+
+export function NavbarFallback() {
+  return (
+    <div className="h-14 border-b bg-background animate-pulse" />
+  );
+}
+
+export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { isSignedIn } = useAuth();
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   return (
-    <nav className="bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <Link href="/" className="flex items-center">
-              <span className="text-white text-xl font-bold">
-                Midway Cleaning
-              </span>
-            </Link>
-          </div>
+    <header className="sticky top-0 z-30 flex h-14 items-center border-b bg-background px-4 sm:px-6">
+      <button
+        onClick={() => {
+          onMenuClick?.();
+          setShowMobileMenu(!showMobileMenu);
+        }}
+        className="mr-4 lg:hidden"
+        aria-label="Toggle menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-          <div className="flex items-center space-x-4">
-            {isSignedIn ? (
-              <Link
-                href="/dashboard"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/sign-in"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-500"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
+      <div className="flex-1" />
+
+      <div className="flex items-center gap-4">
+        {isSignedIn ? (
+          <>
+            <Link
+              href="/portal"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+            >
+              Client Portal
+            </Link>
+            <button
+              className="relative text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+            </button>
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: 'h-8 w-8',
+                },
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Link
+              href="/sign-in"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/sign-up"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </>
+        )}
       </div>
-    </nav>
+    </header>
   );
-} 
+}

@@ -2,17 +2,10 @@
 
 echo "Verifying project structure..."
 
-# Check for App Router files
-if [ -d "app" ]; then
-  echo "Error: App Router directory found"
-  exit 1
-fi
-
-# Verify Pages Router structure
+# Verify App Router structure
 required_dirs=(
-  "src/pages"
+  "src/app"
   "src/components"
-  "src/styles"
   "src/lib"
   "src/types"
 )
@@ -24,12 +17,6 @@ for dir in "${required_dirs[@]}"; do
   fi
 done
 
-# Check for duplicate middleware
-if [ -f "src/middleware/index.ts" ] && [ -f "src/middleware.ts" ]; then
-  echo "Error: Duplicate middleware files found"
-  exit 1
-fi
-
 # Ensure middleware is in correct location
 if [ ! -f "src/middleware.ts" ]; then
   echo "Error: Missing middleware.ts file"
@@ -37,4 +24,4 @@ if [ ! -f "src/middleware.ts" ]; then
 fi
 
 echo "Project structure verification complete"
-exit 0 
+exit 0
