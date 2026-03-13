@@ -1,11 +1,12 @@
-import { UserRole, roleHierarchy, rolePermissions, hasPermission, canAccessRole } from '../roles';
+import { UserRole, roleHierarchy, hasPermission, canAccessRole } from '../roles';
+import { getRolePermissions } from '@/lib/auth';
 
 describe('Roles', () => {
   describe('UserRole enum', () => {
     it('should define all four roles', () => {
       expect(UserRole.ADMIN).toBe('ADMIN');
       expect(UserRole.MANAGER).toBe('MANAGER');
-      expect(UserRole.EMPLOYEE).toBe('EMPLOYEE');
+      expect(UserRole.CLEANER).toBe('CLEANER');
       expect(UserRole.CLIENT).toBe('CLIENT');
     });
   });
@@ -20,60 +21,58 @@ describe('Roles', () => {
     });
 
     it('should have ascending order from CLIENT to ADMIN', () => {
-      expect(roleHierarchy[UserRole.CLIENT]).toBeLessThan(roleHierarchy[UserRole.EMPLOYEE]);
-      expect(roleHierarchy[UserRole.EMPLOYEE]).toBeLessThan(roleHierarchy[UserRole.MANAGER]);
+      expect(roleHierarchy[UserRole.CLIENT]).toBeLessThan(roleHierarchy[UserRole.CLEANER]);
+      expect(roleHierarchy[UserRole.CLEANER]).toBeLessThan(roleHierarchy[UserRole.MANAGER]);
       expect(roleHierarchy[UserRole.MANAGER]).toBeLessThan(roleHierarchy[UserRole.ADMIN]);
     });
   });
 
-  describe('rolePermissions', () => {
-    it('should give ADMIN all management permissions', () => {
-      const adminPerms = rolePermissions[UserRole.ADMIN];
-
-      expect(adminPerms).toContain('manage:users');
-      expect(adminPerms).toContain('manage:roles');
-      expect(adminPerms).toContain('manage:settings');
-      expect(adminPerms).toContain('view:analytics');
+  describe('getRolePermissions', () => {
+    it('should give ADMIN manage-all permission', () => {
+      const adminPerms = getRolePermissions('ADMIN');
+      expect(adminPerms).toContainEqual({ action: 'manage', subject: 'all' });
     });
 
     it('should give MANAGER schedule and task management', () => {
-      const managerPerms = rolePermissions[UserRole.MANAGER];
-
-      expect(managerPerms).toContain('manage:schedules');
-      expect(managerPerms).toContain('manage:tasks');
-      expect(managerPerms).toContain('manage:invoices');
+      const managerPerms = getRolePermissions('MANAGER');
+      expect(managerPerms).toContainEqual({ action: 'manage', subject: 'schedules' });
+      expect(managerPerms).toContainEqual({ action: 'manage', subject: 'tasks' });
+      expect(managerPerms).toContainEqual({ action: 'manage', subject: 'invoices' });
     });
 
-    it('should give EMPLOYEE view-only permissions', () => {
-      const empPerms = rolePermissions[UserRole.EMPLOYEE];
-
-      expect(empPerms).toContain('view:schedules');
-      expect(empPerms).toContain('view:tasks');
-      expect(empPerms).not.toContain('manage:schedules');
+    it('should give CLEANER read-only permissions', () => {
+      const cleanerPerms = getRolePermissions('CLEANER');
+      expect(cleanerPerms).toContainEqual({ action: 'read', subject: 'schedules' });
+      expect(cleanerPerms).toContainEqual({ action: 'read', subject: 'tasks' });
+      expect(cleanerPerms).not.toContainEqual({ action: 'manage', subject: 'schedules' });
     });
 
     it('should give CLIENT own-resource permissions', () => {
-      const clientPerms = rolePermissions[UserRole.CLIENT];
-
-      expect(clientPerms).toContain('view:own_schedules');
-      expect(clientPerms).toContain('view:own_invoices');
-      expect(clientPerms).toContain('manage:own_profile');
+      const clientPerms = getRolePermissions('CLIENT');
+      expect(clientPerms).toContainEqual({ action: 'manage', subject: 'own_profile' });
+      expect(clientPerms).toContainEqual({ action: 'read', subject: 'invoices' });
+      expect(clientPerms).toContainEqual({ action: 'read', subject: 'services' });
     });
   });
 
   describe('hasPermission', () => {
     it('should return true when user has the permission', () => {
-      expect(hasPermission(UserRole.ADMIN, 'manage:users')).toBe(true);
-      expect(hasPermission(UserRole.MANAGER, 'manage:tasks')).toBe(true);
+      expect(hasPermission(UserRole.ADMIN, 'manage', 'all')).toBe(true);
+      expect(hasPermission(UserRole.MANAGER, 'manage', 'tasks')).toBe(true);
+    });
+
+    it('should return true for ADMIN on any action/subject (manage:all)', () => {
+      expect(hasPermission(UserRole.ADMIN, 'manage', 'users')).toBe(true);
+      expect(hasPermission(UserRole.ADMIN, 'read', 'reports')).toBe(true);
     });
 
     it('should return false when user lacks the permission', () => {
-      expect(hasPermission(UserRole.EMPLOYEE, 'manage:users')).toBe(false);
-      expect(hasPermission(UserRole.CLIENT, 'manage:tasks')).toBe(false);
+      expect(hasPermission(UserRole.CLEANER, 'manage', 'users')).toBe(false);
+      expect(hasPermission(UserRole.CLIENT, 'manage', 'tasks')).toBe(false);
     });
 
-    it('should handle edge case of non-existent permission', () => {
-      expect(hasPermission(UserRole.ADMIN, 'fly:helicopter')).toBe(false);
+    it('should handle edge case of non-existent subject', () => {
+      expect(hasPermission(UserRole.CLEANER, 'fly', 'helicopter')).toBe(false);
     });
   });
 
@@ -81,12 +80,12 @@ describe('Roles', () => {
     it('should allow ADMIN to access all roles', () => {
       expect(canAccessRole(UserRole.ADMIN, UserRole.ADMIN)).toBe(true);
       expect(canAccessRole(UserRole.ADMIN, UserRole.MANAGER)).toBe(true);
-      expect(canAccessRole(UserRole.ADMIN, UserRole.EMPLOYEE)).toBe(true);
+      expect(canAccessRole(UserRole.ADMIN, UserRole.CLEANER)).toBe(true);
       expect(canAccessRole(UserRole.ADMIN, UserRole.CLIENT)).toBe(true);
     });
 
-    it('should allow MANAGER to access EMPLOYEE and CLIENT', () => {
-      expect(canAccessRole(UserRole.MANAGER, UserRole.EMPLOYEE)).toBe(true);
+    it('should allow MANAGER to access CLEANER and CLIENT', () => {
+      expect(canAccessRole(UserRole.MANAGER, UserRole.CLEANER)).toBe(true);
       expect(canAccessRole(UserRole.MANAGER, UserRole.CLIENT)).toBe(true);
     });
 
@@ -94,12 +93,12 @@ describe('Roles', () => {
       expect(canAccessRole(UserRole.MANAGER, UserRole.ADMIN)).toBe(false);
     });
 
-    it('should deny EMPLOYEE from accessing MANAGER', () => {
-      expect(canAccessRole(UserRole.EMPLOYEE, UserRole.MANAGER)).toBe(false);
+    it('should deny CLEANER from accessing MANAGER', () => {
+      expect(canAccessRole(UserRole.CLEANER, UserRole.MANAGER)).toBe(false);
     });
 
     it('should allow same-level access', () => {
-      expect(canAccessRole(UserRole.EMPLOYEE, UserRole.EMPLOYEE)).toBe(true);
+      expect(canAccessRole(UserRole.CLEANER, UserRole.CLEANER)).toBe(true);
       expect(canAccessRole(UserRole.CLIENT, UserRole.CLIENT)).toBe(true);
     });
   });

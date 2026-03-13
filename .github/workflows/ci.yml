@@ -58,9 +58,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
       - name: Run tests with coverage
         run: npx jest --coverage --ci
         env:
@@ -93,9 +90,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
 
       - name: Build application
         run: next build

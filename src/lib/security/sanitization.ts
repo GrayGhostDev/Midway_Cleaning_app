@@ -3,13 +3,23 @@ import { z } from 'zod';
 import { ApiError } from '@/lib/api/errors';
 
 // Sanitize HTML content -- strips all tags for safety (jsdom/dompurify not installed)
+// Uses a loop to prevent nested-tag bypass (e.g. "<scr<script>ipt>")
 export function sanitizeHtml(dirty: string): string {
-  return dirty.replace(/<[^>]*>/g, '');
+  let result = dirty;
+  while (/<[^>]*>/.test(result)) {
+    result = result.replace(/<[^>]*>/g, '');
+  }
+  return result;
 }
 
 // Sanitize plain text (remove HTML and scripts)
+// Uses a loop to prevent nested-tag bypass
 export function sanitizeText(text: string): string {
-  return text.replace(/<[^>]*>/g, '');
+  let result = text;
+  while (/<[^>]*>/.test(result)) {
+    result = result.replace(/<[^>]*>/g, '');
+  }
+  return result;
 }
 
 // Sanitize URL
