@@ -1,13 +1,12 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     image: midway-cleaning-app
+    container_name: midway-app
     ports:
-      - "3000:3000"
+      - "8003:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
@@ -22,11 +21,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      com.ggdc.project: "midway-cleaning"
+      com.ggdc.service: "midway-app"
+      com.ggdc.level: "3"
+    networks:
+      - midway-net
+      - ggdc-shared-net
 
   db:
     image: postgres:15-alpine
+    container_name: midway-postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5438:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -38,11 +45,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      com.ggdc.project: "midway-cleaning"
+      com.ggdc.service: "midway-postgres"
+      com.ggdc.level: "3"
+    networks:
+      - midway-net
 
   redis:
     image: redis:7-alpine
+    container_name: midway-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6384:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -51,22 +65,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/logs:/var/log/nginx
-    depends_on:
-      - app
-    restart: unless-stopped
+    labels:
+      com.ggdc.project: "midway-cleaning"
+      com.ggdc.service: "midway-redis"
+      com.ggdc.level: "3"
+    networks:
+      - midway-net
 
   backup:
     image: postgres:15-alpine
+    container_name: midway-backup
     volumes:
       - ./backups:/backups
       - postgres_data:/var/lib/postgresql/data:ro
@@ -85,8 +93,19 @@ services:
       done'
     depends_on:
       - db
+    labels:
+      com.ggdc.project: "midway-cleaning"
+      com.ggdc.service: "midway-backup"
+      com.ggdc.level: "3"
+    networks:
+      - midway-net
 
 volumes:
   postgres_data:
   redis_data:
-  
+
+networks:
+  midway-net:
+    driver: bridge
+  ggdc-shared-net:
+    external: true

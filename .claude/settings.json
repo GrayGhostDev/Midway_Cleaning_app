@@ -1,0 +1,23 @@
+{
+  "context": {
+    "project": "midway-cleaning",
+    "level": 3,
+    "stack": "Next.js 14 / TypeScript / Prisma / PostgreSQL 15 / Redis 7 / Clerk / Stripe",
+    "deployment": "Vercel",
+    "recommendedAgents": [
+      "frontend-specialist",
+      "backend-specialist",
+      "tester"
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Edit(.env)",
+      "Edit(.env.local)",
+      "Edit(secret.key)",
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(secret.key)"
+    ]
+  }
+}
