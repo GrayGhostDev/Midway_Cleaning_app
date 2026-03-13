@@ -2,22 +2,48 @@
   "context": {
     "project": "midway-cleaning",
     "level": 3,
-    "stack": "Next.js 14 / TypeScript / Prisma / PostgreSQL 15 / Redis 7 / Clerk / Stripe",
+    "stack": "Next.js 16 / TypeScript / Supabase (PostgreSQL 15) / Redis 7 / Clerk / Stripe / shadcn-ui",
     "deployment": "Vercel",
     "recommendedAgents": [
       "frontend-specialist",
       "backend-specialist",
-      "tester"
+      "database-architect",
+      "tester",
+      "security"
+    ],
+    "domainAreas": [
+      "booking-lifecycle",
+      "scheduling",
+      "billing-payments",
+      "staff-management",
+      "equipment-inventory",
+      "client-portal",
+      "quality-control",
+      "analytics-reporting"
+    ],
+    "knownDebt": [
+      "dual-auth: Clerk middleware is canonical, but API route handlers still import next-auth — must migrate all to Clerk",
+      "prisma-to-supabase: 19 Prisma models in schema.prisma need migration to Supabase with RLS policies",
+      "duplicate-rbac: Two RBAC implementations exist (rbac.ts + roles.ts) — consolidate to single source"
     ]
   },
   "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(npx supabase *)",
+      "Bash(docker compose *)"
+    ],
     "deny": [
       "Edit(.env)",
       "Edit(.env.local)",
       "Edit(secret.key)",
       "Read(.env)",
       "Read(.env.local)",
-      "Read(secret.key)"
+      "Read(secret.key)",
+      "Bash(npx supabase db reset)"
     ]
   }
 }
