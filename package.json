@@ -110,7 +110,7 @@
   "devDependencies": {
     "@eslint/config-array": "0.19.1",
     "@eslint/object-schema": "2.1.5",
-    "@testing-library/react": "^14.2.1",
+    "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.19",
     "@types/pdfkit": "^0.17.5",
