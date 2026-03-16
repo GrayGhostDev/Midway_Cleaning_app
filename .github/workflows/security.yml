@@ -1,0 +1,20 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+  workflow_dispatch:
+
+jobs:
+  security:
+    uses: Gray-Ghost-Data-Consultants-LLC/.github/.github/workflows/reusable-security.yml@main
+    with:
+      node-version: "22"
+      run-dependency-audit: true
+      run-secret-scan: true
+      run-trivy-fs: true
+      run-sbom: true
+      run-license-check: false
+    secrets: inherit
