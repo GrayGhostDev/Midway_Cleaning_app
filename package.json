@@ -90,7 +90,7 @@
     "path-to-regexp": "^6.2.3",
     "pdfkit": "^0.17.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "^19.2.4",
     "react-hook-form": "^7.50.1",
     "react-hot-toast": "^2.6.0",
     "react-resizable-panels": "^4.7.2",
