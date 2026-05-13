@@ -54,3 +54,6 @@ jest.setup.js
 
 # GitHub workflows
 !.github/workflows/
+
+# JetBrains IDE
+.idea/
