@@ -22,6 +22,12 @@
 | Deployment | Vercel | Frontend + API routes |
 | Package manager | npm | NOT pnpm |
 
+## Proxy Boundary
+
+- **No interception proxy is installed.** Proxyman was removed from the fleet 2026-08-08.
+- A proxy must never be a staging/production runtime dependency.
+- Canonical governance: `~/Business/docs/integrations/MCP_TOPOLOGY.md`.
+
 ## Ports (GGDC-assigned)
 
 | Service | Host Port | Container Port | Notes |
@@ -208,6 +214,9 @@ Two files implement role-based access: `rbac.ts` and `roles.ts`. Consolidate int
 - Runbooks: `~/Business/docs/RUNBOOKS.md`
 - Agent routing: `~/Business/docs/AGENT_ROUTING_MATRIX.md`
 - Legacy config: `~/Business/GGDC-System/the-system/clients/config/midway-cleaning.json`
+- Zapier governance (cross-level policy): `~/Business/docs/ZAPIER_GOVERNANCE.md`
+- Integration ownership matrix: `~/Business/docs/INTEGRATION_OWNERSHIP.md`
+- System surface normalization map: `~/Business/docs/SYSTEM_SURFACE_NORMALIZATION_MAP.md`
 
 ## Security Notes
 
@@ -215,3 +224,11 @@ Two files implement role-based access: `rbac.ts` and `roles.ts`. Consolidate int
 - Never commit credentials; use `.env.local` for local overrides
 - Stripe webhook secret and Clerk keys in environment variables only
 - Supabase service role key: server-side only, never in client bundles
+
+## LaunchBay Integration Status
+
+- Status: `Future State (Not Integrated)`
+- Current state: this repo has no LaunchBay webhook or outbound action integration.
+- Planned direction: evaluate LaunchBay client-portal usage and, if approved, integrate through Ghost-Platform bridge patterns.
+- Canonical governance source: `~/Business/docs/LAUNCHBAY_OPERATIONS_GUIDE.md`
+- Project status doc: `docs/LAUNCHBAY_INTEGRATION_STATUS.md`
